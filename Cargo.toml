@@ -1,0 +1,8 @@
+[package]
+name = "linoleum"
+version = "0.1.0"
+authors = ["Matthew D. Steele <mdsteele@alum.mit.edu>"]
+
+[dependencies]
+ahi = { git = "https://github.com/mdsteele/ahi" }
+sdl2 = { version = "0.22", features = ["use_mac_framework"] }
