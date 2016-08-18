@@ -1,0 +1,33 @@
+@BG 0 12 38
+tiles
+>blue_ells.ahi
+>green_pipes.ahi
+>red_brick.ahi
+>girders.ahi
+>caution_walls.ahi
+>bg_brick.ahi
+
+                    BB      DB                  DB          BB
+                    BB      DB                  DB          BB
+                    BB      DB                  DB          BB
+          BCBABABABABE      DB                  DB          BB
+BABABABABABE                DB                  DB          BB      BCBA
+                            DB              CFCBCBCG        BJBABABABE
+                            DB        CFCBCBCACACACC        BB
+                        DADADCDADADADACICDCDCDCDCDCH        BFBD
+                            DB                DB              BFBABABABA
+DADADADADADA                DB                DB
+                            DB                DB
+                            DB          DADADADCDADADADADADADADADADADADA
+                FFFG        DB                DB
+              FFFAFAFG      DB                DB
+              FEFAFAFC      DB      FFFBFG    DB
+    FFFG    FFFAFACFCBCG    DB    FFFAFAFAFG  DB            FFFG
+CBCBCBCBCBCBCBCBCBCACACACBCBCBCBCBCBCGFAFAFACFCBCBCBCG    CFCBCBCBCBCBCB
+CACACACACACACACACACACACACACACACACACACACBCBCBCACACACACACBCBCACACACACACACA
+CACACACACACACACACACACACACACACACDCDCACACACACACACACACACACACACACACACACACACA
+CACACACACACACACACACACACACACACH  FICECACACACACACACACACACACACACACACACACACA
+CACACACACACACACACACACACACACCDB    CECACACACACACACACACACACACACACACACACACA
+CACACACACACACACACACACACACACACBCBCBCACACACACACACACACACACACACACACACACACACA
+CACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACA
+CACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACACA
