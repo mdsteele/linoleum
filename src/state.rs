@@ -135,7 +135,11 @@ impl EditorState {
     pub fn eyedrop(&mut self, position: (u32, u32)) {
         self.brush = self.current.tilegrid[position].clone();
         if self.tool == Tool::Eyedropper {
-            self.tool = self.prev_tool;
+            self.tool = if self.prev_tool == Tool::Select {
+                Tool::Pencil
+            } else {
+                self.prev_tool
+            };
         }
     }
 
@@ -359,6 +363,10 @@ impl<'a> Mutation<'a> {
         if let Some((grid, position)) = self.state.current.selection.take() {
             self.tilegrid().paste_subgrid(&grid, position);
         }
+    }
+
+    pub fn delete_selection(&mut self) {
+        self.state.current.selection = None;
     }
 
     pub fn cut_selection(&mut self) {
