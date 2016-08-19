@@ -21,12 +21,20 @@ use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min};
 use super::canvas::Canvas;
 use super::element::{Action, GuiElement, SubrectElement};
-use super::event::{Event, Keycode};
+use super::event::{COMMAND, Event, Keycode};
 use super::state::{EditorState, Tool};
 use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, TILE_SIZE};
 use super::util::modulo;
 
 // ========================================================================= //
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ViewSize {
+    Small,
+    Wide,
+    Tall,
+    Full,
+}
 
 pub struct GridCanvas {
     element: SubrectElement<InnerCanvas>,
@@ -74,6 +82,7 @@ struct CanvasDrag {
 struct InnerCanvas {
     drag_from_to: Option<CanvasDrag>,
     selection_animation_counter: i32,
+    view_size: ViewSize,
 }
 
 impl InnerCanvas {
@@ -81,6 +90,7 @@ impl InnerCanvas {
         InnerCanvas {
             drag_from_to: None,
             selection_animation_counter: 0,
+            view_size: ViewSize::Full,
         }
     }
 
@@ -187,9 +197,29 @@ impl InnerCanvas {
 impl GuiElement<EditorState> for InnerCanvas {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         let tilegrid = state.tilegrid();
-        canvas.clear(tilegrid.background_color());
-        for row in 0..GRID_NUM_ROWS {
-            for col in 0..GRID_NUM_COLS {
+        let horz_margin = 3;
+        let vert_margin = 2;
+        let row_range = match self.view_size {
+            ViewSize::Small | ViewSize::Wide => {
+                vert_margin..(GRID_NUM_ROWS - vert_margin)
+            }
+            ViewSize::Tall | ViewSize::Full => 0..GRID_NUM_ROWS,
+        };
+        let col_range = match self.view_size {
+            ViewSize::Small | ViewSize::Tall => {
+                horz_margin..(GRID_NUM_COLS - horz_margin)
+            }
+            ViewSize::Wide | ViewSize::Full => 0..GRID_NUM_COLS,
+        };
+        canvas.fill_rect(tilegrid.background_color(),
+                         Rect::new((col_range.start * TILE_SIZE) as i32,
+                                   (row_range.start * TILE_SIZE) as i32,
+                                   (col_range.end - col_range.start) *
+                                   TILE_SIZE,
+                                   (row_range.end - row_range.start) *
+                                   TILE_SIZE));
+        for row in row_range {
+            for col in col_range.clone() {
                 if let Some(ref tile) = tilegrid[(col, row)] {
                     canvas.draw_sprite(tile.sprite(),
                                        Point::new((col * TILE_SIZE) as i32,
@@ -197,13 +227,15 @@ impl GuiElement<EditorState> for InnerCanvas {
                 }
             }
         }
-        let horz_margin = 3;
-        let vert_margin = 2;
-        let rect = Rect::new((horz_margin * TILE_SIZE) as i32,
-                             (vert_margin * TILE_SIZE) as i32,
-                             (GRID_NUM_COLS - 2 * horz_margin) * TILE_SIZE,
-                             (GRID_NUM_ROWS - 2 * vert_margin) * TILE_SIZE);
-        canvas.draw_rect((63, 63, 63, 255), rect);
+        if self.view_size == ViewSize::Full {
+            let rect = Rect::new((horz_margin * TILE_SIZE) as i32,
+                                 (vert_margin * TILE_SIZE) as i32,
+                                 (GRID_NUM_COLS - 2 * horz_margin) *
+                                 TILE_SIZE,
+                                 (GRID_NUM_ROWS - 2 * vert_margin) *
+                                 TILE_SIZE);
+            canvas.draw_rect((63, 63, 63, 255), rect);
+        }
         if let Some((ref selected, topleft)) = state.selection() {
             for row in 0..selected.height() {
                 for col in 0..selected.width() {
@@ -240,26 +272,35 @@ impl GuiElement<EditorState> for InnerCanvas {
                     self.selection_animation_counter =
                         modulo(self.selection_animation_counter + 1,
                                MARQUEE_ANIMATION_MODULUS);
-                    return Action::redraw().and_continue();
+                    Action::redraw().and_continue()
                 } else {
-                    return Action::ignore().and_continue();
+                    Action::ignore().and_continue()
                 }
             }
             &Event::KeyDown(Keycode::Backspace, _) => {
                 if state.selection().is_some() {
                     state.mutation().delete_selection();
-                    return Action::redraw().and_stop();
+                    Action::redraw().and_stop()
                 } else {
-                    return Action::ignore().and_continue();
+                    Action::ignore().and_continue()
                 }
             }
             &Event::KeyDown(Keycode::Escape, _) => {
                 if state.selection().is_some() {
                     state.mutation().unselect();
-                    return Action::redraw().and_stop();
+                    Action::redraw().and_stop()
                 } else {
-                    return Action::ignore().and_continue();
+                    Action::ignore().and_continue()
                 }
+            }
+            &Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND => {
+                self.view_size = match self.view_size {
+                    ViewSize::Small => ViewSize::Wide,
+                    ViewSize::Wide => ViewSize::Tall,
+                    ViewSize::Tall => ViewSize::Full,
+                    ViewSize::Full => ViewSize::Small,
+                };
+                Action::redraw().and_stop()
             }
             &Event::MouseDown(pt) => {
                 match state.tool() {
