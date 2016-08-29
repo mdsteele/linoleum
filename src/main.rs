@@ -32,7 +32,7 @@ mod toolbox;
 mod unsaved;
 mod util;
 
-use self::canvas::{Canvas, Sprite};
+use self::canvas::{Font, Sprite, Window};
 use self::element::{Action, AggregateElement, GuiElement};
 use self::event::{COMMAND, Event, Keycode, SHIFT};
 use self::paint::GridCanvas;
@@ -49,22 +49,30 @@ use std::rc::Rc;
 
 const FRAME_DELAY_MILLIS: u32 = 100;
 
-fn render_screen<E: GuiElement<EditorState>>(canvas: &mut Canvas,
+fn render_screen<E: GuiElement<EditorState>>(window: &mut Window,
                                              state: &EditorState,
                                              gui: &E) {
-    canvas.clear((64, 64, 64, 255));
-    gui.draw(state, canvas);
-    canvas.present();
+    {
+        let mut canvas = window.canvas();
+        canvas.clear((64, 64, 64, 255));
+        gui.draw(state, &mut canvas);
+    }
+    window.present();
 }
 
-fn load_sprite(canvas: &Canvas, path: &str) -> Sprite {
-    let images = util::load_ahi_from_file(&path.to_string()).unwrap();
-    canvas.new_sprite(&images[0])
+fn load_font(window: &Window, path: &str) -> Font {
+    let ahf = util::load_ahf_from_file(&path.to_string()).unwrap();
+    window.new_font(&ahf)
 }
 
-fn load_sprites(canvas: &Canvas, path: &str) -> Vec<Sprite> {
+fn load_sprite(window: &Window, path: &str) -> Sprite {
     let images = util::load_ahi_from_file(&path.to_string()).unwrap();
-    images.iter().map(|image| canvas.new_sprite(image)).collect()
+    window.new_sprite(&images[0])
+}
+
+fn load_sprites(window: &Window, path: &str) -> Vec<Sprite> {
+    let images = util::load_ahi_from_file(&path.to_string()).unwrap();
+    images.iter().map(|image| window.new_sprite(image)).collect()
 }
 
 // ========================================================================= //
@@ -77,24 +85,23 @@ fn main() {
 
     let window_width = 720;
     let window_height = 450;
-    let window = video_subsystem.window("Linoleum",
-                                        window_width,
-                                        window_height)
-                                .position_centered()
-                                .fullscreen_desktop()
-                                .build()
-                                .unwrap();
-    let mut renderer = window.renderer().build().unwrap();
+    let sdl_window = video_subsystem.window("Linoleum",
+                                            window_width,
+                                            window_height)
+                                    .position_centered()
+                                    .fullscreen_desktop()
+                                    .build()
+                                    .unwrap();
+    let mut renderer = sdl_window.renderer().build().unwrap();
     renderer.set_logical_size(window_width, window_height).unwrap();
-    let mut canvas = Canvas::from_renderer(&mut renderer);
+    let mut window = Window::from_renderer(&mut renderer);
 
-    let tool_icons: Vec<Sprite> = load_sprites(&canvas, "data/tool_icons.ahi");
-    let arrow_icons: Vec<Sprite> = load_sprites(&canvas, "data/arrows.ahi");
-    let unsaved_icon = load_sprite(&canvas, "data/unsaved.ahi");
-    let font: Rc<Vec<Sprite>> = Rc::new(load_sprites(&canvas,
-                                                     "data/font.ahi"));
+    let tool_icons: Vec<Sprite> = load_sprites(&window, "data/tool_icons.ahi");
+    let arrow_icons: Vec<Sprite> = load_sprites(&window, "data/arrows.ahi");
+    let unsaved_icon = load_sprite(&window, "data/unsaved.ahi");
+    let font: Rc<Font> = Rc::new(load_font(&window, "data/font.ahf"));
 
-    let tileset = Tileset::load(&canvas,
+    let tileset = Tileset::load(&window,
                                 PathBuf::from("tiles"),
                                 &["blue_ells.ahi".to_string(),
                                   "green_pipes.ahi".to_string(),
@@ -114,7 +121,7 @@ fn main() {
     ];
     let mut gui = AggregateElement::new(elements);
 
-    render_screen(&mut canvas, &state, &gui);
+    render_screen(&mut window, &state, &gui);
 
     Event::register_clock_ticks(&event_subsystem);
     let _timer =
@@ -169,8 +176,8 @@ fn main() {
             }
             event => gui.handle_event(&event, &mut state),
         };
-        if state.mode_perform_if_necessary(&canvas) || action.should_redraw() {
-            render_screen(&mut canvas, &state, &gui);
+        if state.mode_perform_if_necessary(&window) || action.should_redraw() {
+            render_screen(&mut window, &state, &gui);
         }
     }
 }

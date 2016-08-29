@@ -20,19 +20,21 @@
 use sdl2::rect::{Point, Rect};
 use std::cmp;
 use std::rc::Rc;
-use super::canvas::{Canvas, Sprite};
+use super::canvas::{Canvas, Font};
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{Event, Keycode};
 use super::state::{EditorState, Mode};
 
 // ========================================================================= //
 
+const LABEL_WIDTH: i32 = 40;
+
 pub struct TextBox {
-    font: Rc<Vec<Sprite>>,
+    font: Rc<Font>,
 }
 
 impl TextBox {
-    pub fn new(font: Rc<Vec<Sprite>>) -> TextBox {
+    pub fn new(font: Rc<Font>) -> TextBox {
         TextBox { font: font }
     }
 }
@@ -41,9 +43,10 @@ impl GuiElement<String> for TextBox {
     fn draw(&self, text: &String, canvas: &mut Canvas) {
         let rect = canvas.rect();
         let rect_width = rect.width() as i32;
-        let text_width = CHAR_PIXEL_WIDTH * text.len() as i32;
-        let text_left = cmp::min(2, rect_width - 3 - text_width);
-        render_string(canvas, &self.font, text_left, 2, text);
+        let text_width = self.font.text_width(text);
+        let text_left = cmp::min(4, rect_width - 4 - text_width);
+        canvas.fill_rect((128, 128, 128, 255), rect);
+        render_string(canvas, &self.font, text_left, 4, text);
         canvas.draw_rect((255, 255, 255, 255), rect);
     }
 
@@ -67,18 +70,22 @@ impl GuiElement<String> for TextBox {
 pub struct ModalTextBox {
     left: i32,
     top: i32,
-    font: Rc<Vec<Sprite>>,
+    font: Rc<Font>,
     element: SubrectElement<TextBox>,
 }
 
 impl ModalTextBox {
-    pub fn new(left: i32, top: i32, font: Rc<Vec<Sprite>>) -> ModalTextBox {
+    pub fn new(left: i32, top: i32, font: Rc<Font>) -> ModalTextBox {
         ModalTextBox {
             left: left,
             top: top,
             font: font.clone(),
-            element: SubrectElement::new(TextBox::new(font),
-                                         Rect::new(left + 70, top, 630, 20)),
+            element:
+                SubrectElement::new(TextBox::new(font),
+                                    Rect::new(left + LABEL_WIDTH,
+                                              top,
+                                              (700 - LABEL_WIDTH) as u32,
+                                              18)),
         }
     }
 }
@@ -100,10 +107,15 @@ impl GuiElement<EditorState> for ModalTextBox {
             }
             Mode::ChangeColor(ref text) => {
                 self.element.draw(text, canvas);
-                "Color"
+                "Color:"
             }
         };
-        render_string(canvas, &self.font, self.left, self.top + 2, label);
+        let text_width = self.font.text_width(label);
+        render_string(canvas,
+                      &self.font,
+                      self.left + LABEL_WIDTH - text_width - 2,
+                      self.top + 4,
+                      label);
     }
 
     fn handle_event(&mut self,
@@ -137,29 +149,12 @@ impl GuiElement<EditorState> for ModalTextBox {
 
 // ========================================================================= //
 
-const CHAR_PIXEL_WIDTH: i32 = 14;
-
 fn render_string(canvas: &mut Canvas,
-                 font: &Vec<Sprite>,
+                 font: &Font,
                  left: i32,
                  top: i32,
                  string: &str) {
-    let mut x = left;
-    let mut y = top;
-    for ch in string.chars() {
-        if ch == '\n' {
-            x = left;
-            y += 24;
-        } else {
-            if ch >= '!' {
-                let index = ch as usize - '!' as usize;
-                if index < font.len() {
-                    canvas.draw_sprite(&font[index], Point::new(x, y));
-                }
-            }
-            x += CHAR_PIXEL_WIDTH;
-        }
-    }
+    canvas.draw_text(font, Point::new(left, top + font.baseline()), string);
 }
 
 // ========================================================================= //

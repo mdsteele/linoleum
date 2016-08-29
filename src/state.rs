@@ -22,7 +22,7 @@ use std::fs::File;
 use std::io;
 use std::mem;
 use std::rc::Rc;
-use super::canvas::Canvas;
+use super::canvas::Window;
 use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid,
                       Tileset};
 
@@ -270,7 +270,7 @@ impl EditorState {
         }
     }
 
-    pub fn mode_perform_if_necessary(&mut self, canvas: &Canvas) -> bool {
+    pub fn mode_perform_if_necessary(&mut self, window: &Window) -> bool {
         if !self.should_mode_perform {
             return false;
         }
@@ -278,7 +278,7 @@ impl EditorState {
         match self.mode.clone() {
             Mode::Edit => false,
             Mode::LoadFile(path) => {
-                match TileGrid::load_from_path(canvas, &path) {
+                match TileGrid::load_from_path(window, &path) {
                     Ok(tilegrid) => {
                         self.filepath = path;
                         self.current.tilegrid = Rc::new(tilegrid);

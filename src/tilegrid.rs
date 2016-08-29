@@ -25,7 +25,7 @@ use std::io;
 use std::ops::{Index, IndexMut};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use super::canvas::{Canvas, Sprite};
+use super::canvas::{Sprite, Window};
 use super::util;
 
 // ========================================================================= //
@@ -36,7 +36,7 @@ pub struct Tileset {
 }
 
 impl Tileset {
-    pub fn load(canvas: &Canvas,
+    pub fn load(window: &Window,
                 dirpath: PathBuf,
                 filenames: &[String])
                 -> io::Result<Tileset> {
@@ -48,7 +48,7 @@ impl Tileset {
                                                             .to_string()));
             let mut sprites = vec![];
             for image in images {
-                let sprite = canvas.new_sprite(&image);
+                let sprite = window.new_sprite(&image);
                 sprites.push(Rc::new(sprite));
             }
             tiles.push((filename.to_string(), sprites));
@@ -338,7 +338,7 @@ impl TileGrid {
         Ok(())
     }
 
-    pub fn load<R: io::Read>(canvas: &Canvas,
+    pub fn load<R: io::Read>(window: &Window,
                              mut reader: R)
                              -> io::Result<TileGrid> {
         try!(read_exactly(reader.by_ref(), b"@BG "));
@@ -360,7 +360,7 @@ impl TileGrid {
                 }
             }
         }
-        let tileset = try!(Tileset::load(canvas, dirpath, &filenames));
+        let tileset = try!(Tileset::load(window, dirpath, &filenames));
         let mut grid = Vec::new();
         for _ in 0..GRID_NUM_ROWS {
             let mut col = 0;
@@ -399,10 +399,10 @@ impl TileGrid {
         })
     }
 
-    pub fn load_from_path(canvas: &Canvas,
+    pub fn load_from_path(window: &Window,
                           path: &String)
                           -> io::Result<TileGrid> {
-        TileGrid::load(canvas, try!(File::open(path)))
+        TileGrid::load(window, try!(File::open(path)))
     }
 }
 
