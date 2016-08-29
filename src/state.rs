@@ -189,6 +189,9 @@ impl EditorState {
         if let Some(mut snapshot) = self.undo_stack.pop() {
             mem::swap(&mut snapshot, &mut self.current);
             self.redo_stack.push(snapshot);
+            if self.current.selection.is_some() {
+                self.tool = Tool::Select;
+            }
             true
         } else {
             false
@@ -199,6 +202,9 @@ impl EditorState {
         if let Some(mut snapshot) = self.redo_stack.pop() {
             mem::swap(&mut snapshot, &mut self.current);
             self.undo_stack.push(snapshot);
+            if self.current.selection.is_some() {
+                self.tool = Tool::Select;
+            }
             true
         } else {
             false
