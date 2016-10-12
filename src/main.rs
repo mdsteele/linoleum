@@ -103,11 +103,11 @@ fn main() {
 
     let tileset = Tileset::load(&window,
                                 &PathBuf::from("tiles"),
-                                &["blue_ells.ahi".to_string(),
-                                  "green_pipes.ahi".to_string(),
-                                  "red_brick.ahi".to_string(),
-                                  "girders.ahi".to_string(),
-                                  "caution_walls.ahi".to_string()])
+                                &["blue_ells".to_string(),
+                                  "green_pipes".to_string(),
+                                  "red_brick".to_string(),
+                                  "girders".to_string(),
+                                  "caution_walls".to_string()])
                       .unwrap();
     let mut state = EditorState::new("out.bg".to_string(), tileset);
 
@@ -159,6 +159,9 @@ fn main() {
             }
             Event::KeyDown(Keycode::S, kmod) if kmod == COMMAND | SHIFT => {
                 Action::redraw_if(state.begin_save_as()).and_stop()
+            }
+            Event::KeyDown(Keycode::T, kmod) if kmod == COMMAND => {
+                Action::redraw_if(state.begin_change_tiles()).and_stop()
             }
             Event::KeyDown(Keycode::V, kmod) if kmod == COMMAND => {
                 state.mutation().paste_selection();

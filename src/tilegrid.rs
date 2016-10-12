@@ -19,7 +19,7 @@
 
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min, Ordering};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io;
 use std::ops::{Index, IndexMut};
@@ -30,6 +30,7 @@ use super::util;
 
 // ========================================================================= //
 
+#[derive(Clone)]
 pub struct Tileset {
     dirpath: PathBuf,
     tiles: Vec<(String, Vec<Rc<Sprite>>)>,
@@ -57,6 +58,35 @@ impl Tileset {
             dirpath: dirpath.to_path_buf(),
             tiles: tiles,
         })
+    }
+
+    pub fn reload(&mut self,
+                  window: &Window,
+                  filenames: &[&str])
+                  -> io::Result<()> {
+        let mut old_tiles: BTreeMap<String, Vec<Rc<Sprite>>> = BTreeMap::new();
+        for &(ref filename, ref sprites) in self.tiles.iter() {
+            old_tiles.insert(filename.clone(), sprites.clone());
+        }
+        let mut new_tiles: Vec<(String, Vec<Rc<Sprite>>)> = Vec::new();
+        for filename in filenames {
+            if let Some(sprites) = old_tiles.get(&filename.to_string()) {
+                new_tiles.push((filename.to_string(), sprites.clone()));
+            } else {
+                let path = self.dirpath.join(filename).with_extension("ahi");
+                let images = try!(util::load_ahi_from_file(&path.to_str()
+                                                                .unwrap()
+                                                                .to_string()));
+                let mut sprites = vec![];
+                for image in images {
+                    let sprite = window.new_sprite(&image);
+                    sprites.push(Rc::new(sprite));
+                }
+                new_tiles.push((filename.to_string(), sprites));
+            }
+        }
+        self.tiles = new_tiles;
+        Ok(())
     }
 
     pub fn dirpath(&self) -> &Path {
@@ -242,6 +272,27 @@ impl TileGrid {
 
     pub fn tileset(&self) -> Rc<Tileset> {
         self.tileset.clone()
+    }
+
+    pub fn set_tile_filenames(&mut self,
+                              window: &Window,
+                              filenames: Vec<&str>)
+                              -> io::Result<()> {
+        try!(Rc::make_mut(&mut self.tileset).reload(window, &filenames));
+        let filenames_set: BTreeSet<String> = filenames.iter()
+                                                       .cloned()
+                                                       .map(str::to_string)
+                                                       .collect();
+        for tile in self.grid.iter_mut() {
+            let bad = match *tile {
+                Some(ref tile) => !filenames_set.contains(&tile.filename),
+                None => false,
+            };
+            if bad {
+                *tile = None;
+            }
+        }
+        Ok(())
     }
 
     pub fn copy_subgrid(&self, rect: Rect) -> SubGrid {

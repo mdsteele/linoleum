@@ -42,6 +42,7 @@ pub enum Mode {
     LoadFile(String),
     SaveAs(String),
     ChangeColor(String),
+    ChangeTiles(String),
 }
 
 // ========================================================================= //
@@ -256,6 +257,23 @@ impl EditorState {
         }
     }
 
+    pub fn begin_change_tiles(&mut self) -> bool {
+        if self.mode == Mode::Edit {
+            self.unselect_if_necessary();
+            let mut string = String::new();
+            for filename in self.tilegrid().tileset().filenames() {
+                if !string.is_empty() {
+                    string.push(',');
+                }
+                string.push_str(&filename);
+            }
+            self.mode = Mode::ChangeTiles(string);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn mode_cancel(&mut self) -> bool {
         match self.mode {
             Mode::Edit => false,
@@ -337,6 +355,19 @@ impl EditorState {
                 self.mode = Mode::Edit;
                 true
             }
+            Mode::ChangeTiles(text) => {
+                let pieces: Vec<&str> = text.split(',').collect();
+                if pieces.len() < 1 {
+                    return false;
+                }
+                match self.mutation().set_tile_filenames(window, pieces) {
+                    Ok(()) => {
+                        self.mode = Mode::Edit;
+                        true
+                    }
+                    Err(_) => false,
+                }
+            }
         }
     }
 }
@@ -354,6 +385,13 @@ impl<'a> Mutation<'a> {
 
     pub fn set_background_color(&mut self, red: u8, green: u8, blue: u8) {
         self.tilegrid().set_background_color(red, green, blue);
+    }
+
+    pub fn set_tile_filenames(&mut self,
+                              window: &Window,
+                              filenames: Vec<&str>)
+                              -> io::Result<()> {
+        self.tilegrid().set_tile_filenames(window, filenames)
     }
 
     pub fn select(&mut self, rect: Rect) {

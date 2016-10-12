@@ -109,6 +109,10 @@ impl GuiElement<EditorState> for ModalTextBox {
                 self.element.draw(text, canvas);
                 "Color:"
             }
+            Mode::ChangeTiles(ref text) => {
+                self.element.draw(text, canvas);
+                "Tiles:"
+            }
         };
         let text_width = self.font.text_width(label);
         render_string(canvas,
@@ -138,7 +142,8 @@ impl GuiElement<EditorState> for ModalTextBox {
                     Mode::Edit => Action::ignore().and_continue(),
                     Mode::LoadFile(ref mut text) |
                     Mode::SaveAs(ref mut text) |
-                    Mode::ChangeColor(ref mut text) => {
+                    Mode::ChangeColor(ref mut text) |
+                    Mode::ChangeTiles(ref mut text) => {
                         self.element.handle_event(event, text)
                     }
                 }
