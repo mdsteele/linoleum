@@ -1,8 +1,7 @@
 @BG 25 25 0
-tiles
->blue_ells.ahi
->green_pipes.ahi
->purple_walls.ahi
+>blue_ells
+>green_pipes
+>purple_walls
 
 
 

@@ -1,11 +1,10 @@
 @BG 0 12 38
-tiles
->blue_ells.ahi
->green_pipes.ahi
->red_brick.ahi
->girders.ahi
->caution_walls.ahi
->bg_brick.ahi
+>blue_ells
+>green_pipes
+>red_brick
+>girders
+>caution_walls
+>bg_brick
 
                     BB      DB                  DB          BB
                     BB      DB                  DB          BB

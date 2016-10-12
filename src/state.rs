@@ -284,7 +284,11 @@ impl EditorState {
         match self.mode.clone() {
             Mode::Edit => false,
             Mode::LoadFile(path) => {
-                match TileGrid::load_from_path(window, &path) {
+                match TileGrid::load_from_path(window,
+                                               self.tilegrid()
+                                                   .tileset()
+                                                   .dirpath(),
+                                               &path) {
                     Ok(tilegrid) => {
                         self.filepath = path;
                         self.current.tilegrid = Rc::new(tilegrid);

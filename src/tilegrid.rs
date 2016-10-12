@@ -37,12 +37,12 @@ pub struct Tileset {
 
 impl Tileset {
     pub fn load(window: &Window,
-                dirpath: PathBuf,
+                dirpath: &Path,
                 filenames: &[String])
                 -> io::Result<Tileset> {
         let mut tiles = vec![];
         for filename in filenames {
-            let path = dirpath.join(filename);
+            let path = dirpath.join(filename).with_extension("ahi");
             let images = try!(util::load_ahi_from_file(&path.to_str()
                                                             .unwrap()
                                                             .to_string()));
@@ -54,7 +54,7 @@ impl Tileset {
             tiles.push((filename.to_string(), sprites));
         }
         Ok(Tileset {
-            dirpath: dirpath,
+            dirpath: dirpath.to_path_buf(),
             tiles: tiles,
         })
     }
@@ -305,7 +305,6 @@ impl TileGrid {
     pub fn save<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         let (red, green, blue) = self.background_color;
         try!(write!(writer, "@BG {} {} {}\n", red, green, blue));
-        try!(write!(writer, "{}\n", self.tileset.dirpath().display()));
         for filename in self.tileset.filenames() {
             try!(write!(writer, ">{}\n", filename));
         }
@@ -339,13 +338,13 @@ impl TileGrid {
     }
 
     pub fn load<R: io::Read>(window: &Window,
+                             dirpath: &Path,
                              mut reader: R)
                              -> io::Result<TileGrid> {
         try!(read_exactly(reader.by_ref(), b"@BG "));
         let red = try!(read_int(reader.by_ref(), b' ')) as u8;
         let green = try!(read_int(reader.by_ref(), b' ')) as u8;
         let blue = try!(read_int(reader.by_ref(), b'\n')) as u8;
-        let dirpath = PathBuf::from(try!(read_string(reader.by_ref(), b'\n')));
         let mut filenames = Vec::new();
         loop {
             match try!(read_byte(reader.by_ref())) {
@@ -400,9 +399,10 @@ impl TileGrid {
     }
 
     pub fn load_from_path(window: &Window,
+                          dirpath: &Path,
                           path: &String)
                           -> io::Result<TileGrid> {
-        TileGrid::load(window, try!(File::open(path)))
+        TileGrid::load(window, dirpath, try!(File::open(path)))
     }
 }
 

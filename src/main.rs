@@ -102,7 +102,7 @@ fn main() {
     let font: Rc<Font> = Rc::new(load_font(&window, "data/font.ahf"));
 
     let tileset = Tileset::load(&window,
-                                PathBuf::from("tiles"),
+                                &PathBuf::from("tiles"),
                                 &["blue_ells.ahi".to_string(),
                                   "green_pipes.ahi".to_string(),
                                   "red_brick.ahi".to_string(),
