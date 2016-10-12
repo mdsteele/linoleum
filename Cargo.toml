@@ -2,7 +2,8 @@
 name = "linoleum"
 version = "0.1.0"
 authors = ["Matthew D. Steele <mdsteele@alum.mit.edu>"]
+build = "build.rs"
 
 [dependencies]
 ahi = { git = "https://github.com/mdsteele/ahi" }
-sdl2 = { version = "0.22", features = ["use_mac_framework"] }
+sdl2 = { version = "0.23", features = ["use_mac_framework"] }
