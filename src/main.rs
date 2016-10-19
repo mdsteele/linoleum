@@ -21,6 +21,7 @@ extern crate ahi;
 extern crate sdl2;
 
 mod canvas;
+mod coords;
 mod element;
 mod event;
 mod paint;
@@ -33,6 +34,7 @@ mod unsaved;
 mod util;
 
 use self::canvas::{Font, Sprite, Window};
+use self::coords::CoordsIndicator;
 use self::element::{Action, AggregateElement, GuiElement};
 use self::event::{COMMAND, Event, Keycode, SHIFT};
 use self::paint::GridCanvas;
@@ -118,6 +120,7 @@ fn main() {
         Box::new(TilePalette::new(10, 72, arrow_icons)),
         Box::new(GridCanvas::new(72, 10)),
         Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
+        Box::new(CoordsIndicator::new(658, 354, font.clone())),
     ];
     let mut gui = AggregateElement::new(elements);
 
