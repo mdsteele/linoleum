@@ -123,12 +123,14 @@ impl<'a> Canvas<'a> {
             Some(rect) => (rect.x(), rect.y()),
             None => (0, 0),
         };
-        self.renderer.copy(&sprite.texture,
-                           None,
-                           Some(Rect::new(x + topleft.x(),
-                                          y + topleft.y(),
-                                          sprite.width(),
-                                          sprite.height())));
+        self.renderer
+            .copy(&sprite.texture,
+                  None,
+                  Some(Rect::new(x + topleft.x(),
+                                 y + topleft.y(),
+                                 sprite.width(),
+                                 sprite.height())))
+            .unwrap();
     }
 
     pub fn clear(&mut self, color: (u8, u8, u8, u8)) {

@@ -18,6 +18,7 @@
 // +--------------------------------------------------------------------------+
 
 extern crate ahi;
+extern crate getopts;
 extern crate sdl2;
 
 mod canvas;
@@ -41,7 +42,7 @@ use self::paint::GridCanvas;
 use self::palette::TilePalette;
 use self::state::EditorState;
 use self::textbox::ModalTextBox;
-use self::tilegrid::Tileset;
+use self::tilegrid::{TileGrid, Tileset};
 use self::toolbox::Toolbox;
 use self::unsaved::UnsavedIndicator;
 use std::path::PathBuf;
@@ -80,6 +81,24 @@ fn load_sprites(window: &Window, path: &str) -> Vec<Sprite> {
 // ========================================================================= //
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let mut opts = getopts::Options::new();
+    opts.optflag("h", "help", "print this help menu");
+    opts.optopt("", "tiles", "set tiles directory", "DIR");
+    opts.optopt("", "bg", "background file to open", "FILE");
+    let matches = opts.parse(&args[1..]).unwrap_or_else(|failure| {
+        println!("Error: {:?}", failure);
+        println!("Run with --help to see available flags.");
+        std::process::exit(1);
+    });
+    if matches.opt_present("help") {
+        let brief = format!("Usage: {} [options]", &args[0]);
+        print!("{}", opts.usage(&brief));
+        std::process::exit(0);
+    }
+    let tiles_dir = PathBuf::from(matches.opt_str("tiles")
+                                         .unwrap_or("tiles".to_string()));
+
     let sdl_context = sdl2::init().unwrap();
     let event_subsystem = sdl_context.event().unwrap();
     let timer_subsystem = sdl_context.timer().unwrap();
@@ -103,16 +122,21 @@ fn main() {
     let unsaved_icon = load_sprite(&window, "data/unsaved.ahi");
     let font: Rc<Font> = Rc::new(load_font(&window, "data/font.ahf"));
 
-    let tileset = Tileset::load(&window,
-                                &PathBuf::from("tiles"),
-                                &["blue_ells".to_string(),
-                                  "green_pipes".to_string(),
-                                  "red_brick".to_string(),
-                                  "girders".to_string(),
-                                  "caution_walls".to_string()])
-                      .unwrap();
-    let mut state = EditorState::new("out.bg".to_string(), tileset);
-
+    let mut state = if let Some(path) = matches.opt_str("bg") {
+        match TileGrid::load_from_path(&window, &tiles_dir, &path) {
+            Ok(tilegrid) => EditorState::new(path, tilegrid),
+            Err(err) => {
+                println!("Failed to load bg: {:?}", err);
+                std::process::exit(0);
+            }
+        }
+    } else {
+        let tileset = Tileset::load(&window,
+                                    &tiles_dir,
+                                    &["green_pipes".to_string()])
+                          .unwrap();
+        EditorState::new("out.bg".to_string(), TileGrid::new(tileset))
+    };
 
     let elements: Vec<Box<GuiElement<EditorState>>> = vec![
         Box::new(ModalTextBox::new(10, 420, font.clone())),

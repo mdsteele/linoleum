@@ -6,4 +6,5 @@ build = "build.rs"
 
 [dependencies]
 ahi = { git = "https://github.com/mdsteele/ahi" }
-sdl2 = { version = "0.23", features = ["use_mac_framework"] }
+getopts = "0.2"
+sdl2 = { version = "0.24", features = ["use_mac_framework"] }

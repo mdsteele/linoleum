@@ -23,8 +23,7 @@ use std::io;
 use std::mem;
 use std::rc::Rc;
 use super::canvas::Window;
-use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid,
-                      Tileset};
+use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid};
 
 // ========================================================================= //
 
@@ -73,12 +72,12 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    pub fn new(filepath: String, tileset: Tileset) -> EditorState {
+    pub fn new(filepath: String, tilegrid: TileGrid) -> EditorState {
         EditorState {
             mode: Mode::Edit,
             filepath: filepath,
             current: Snapshot {
-                tilegrid: Rc::new(TileGrid::new(tileset)),
+                tilegrid: Rc::new(tilegrid),
                 selection: None,
                 unsaved: true,
             },

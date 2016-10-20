@@ -3,7 +3,8 @@ name = "linoleum"
 version = "0.1.0"
 dependencies = [
  "ahi 0.1.0 (git+https://github.com/mdsteele/ahi)",
- "sdl2 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -14,6 +15,11 @@ source = "git+https://github.com/mdsteele/ahi#8dfd2b39ba35d77a3260d95d53369c149e
 [[package]]
 name = "bitflags"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "getopts"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -107,7 +113,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "sdl2"
-version = "0.23.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -115,12 +121,12 @@ dependencies = [
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2-sys"
-version = "0.23.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -129,6 +135,7 @@ dependencies = [
 [metadata]
 "checksum ahi 0.1.0 (git+https://github.com/mdsteele/ahi)" = "<none>"
 "checksum bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "72cd7314bd4ee024071241147222c706e80385a1605ac7d4cd2fcc339da2ae46"
+"checksum getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)" = "d9047cfbd08a437050b363d35ef160452c5fe8ea5187ae0a624708c91581d685"
 "checksum lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "49247ec2a285bb3dcb23cbd9c35193c025e7251bfce77c1d5da97e6362dffe7f"
 "checksum libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)" = "23e3757828fa702a20072c37ff47938e9dd331b92fac6e223d26d4b7a55f7ee2"
 "checksum num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "5a9699207fab8b02bd0e56f8f06fee3f26d640303130de548898b4c9704f6d01"
@@ -140,5 +147,5 @@ dependencies = [
 "checksum num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "8359ea48994f253fa958b5b90b013728b06f54872e5a58bce39540fcdd0f2527"
 "checksum rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "2791d88c6defac799c3f20d74f094ca33b9332612d9aef9078519c82e4fe04a5"
 "checksum rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)" = "6159e4e6e559c81bd706afe9c8fd68f547d3e851ce12e76b1de7914bab61691b"
-"checksum sdl2 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6f657685c104b3bc962115a469d9f9f4599133ef0e27c1cd7d5b0acd8e53860"
-"checksum sdl2-sys 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dac03a13e21d0e36d8cb965807424c8098e16319166e74a584e520f8e23f909f"
+"checksum sdl2 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6a319642fdc3e2e0e0baf1d2840c61a72e245ed6b884315677244995deaecf1f"
+"checksum sdl2-sys 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)" = "02477022dc38dd59ededb004edc8d9828b2f7498e9b67bbbe9e5dfdae9850a99"
