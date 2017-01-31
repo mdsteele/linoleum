@@ -32,7 +32,8 @@ pub struct Toolbox {
 impl Toolbox {
     pub fn new(left: i32, top: i32, mut icons: Vec<Sprite>) -> Toolbox {
         icons.truncate(5);
-        assert_eq!(icons.len(), 4);
+        assert_eq!(icons.len(), 5);
+        let swap_icon = icons.pop().unwrap();
         let select_icon = icons.pop().unwrap();
         let eyedrop_icon = icons.pop().unwrap();
         let bucket_icon = icons.pop().unwrap();
@@ -40,12 +41,13 @@ impl Toolbox {
         let elements: Vec<Box<GuiElement<Tool>>> = vec![
             Toolbox::picker(2, 2, Tool::Pencil, Keycode::P, pencil_icon),
             Toolbox::picker(2, 24, Tool::PaintBucket, Keycode::K, bucket_icon),
+            Toolbox::picker(2, 46, Tool::PaletteSwap, Keycode::W, swap_icon),
             Toolbox::picker(24, 2, Tool::Eyedropper, Keycode::Y, eyedrop_icon),
             Toolbox::picker(24, 24, Tool::Select, Keycode::S, select_icon),
         ];
         Toolbox {
             element: SubrectElement::new(AggregateElement::new(elements),
-                                         Rect::new(left, top, 46, 46)),
+                                         Rect::new(left, top, 46, 68)),
         }
     }
 

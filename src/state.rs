@@ -31,6 +31,7 @@ use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid};
 pub enum Tool {
     Eyedropper,
     PaintBucket,
+    PaletteSwap,
     Pencil,
     Select,
 }

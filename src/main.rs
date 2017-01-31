@@ -141,7 +141,7 @@ fn main() {
     let elements: Vec<Box<GuiElement<EditorState>>> = vec![
         Box::new(ModalTextBox::new(10, 420, font.clone())),
         Box::new(Toolbox::new(10, 10, tool_icons)),
-        Box::new(TilePalette::new(10, 72, arrow_icons)),
+        Box::new(TilePalette::new(10, 92, arrow_icons)),
         Box::new(GridCanvas::new(72, 10)),
         Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
         Box::new(CoordsIndicator::new(658, 354, font.clone())),

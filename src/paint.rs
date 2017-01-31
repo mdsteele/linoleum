@@ -192,6 +192,32 @@ impl InnerCanvas {
         }
         true
     }
+
+    fn try_palette_swap(&self, mouse: Point, state: &mut EditorState) -> bool {
+        let start = match self.mouse_to_row_col(mouse) {
+            Some(position) => position,
+            None => return false,
+        };
+        let to_tile = state.brush().clone();
+        let from_tile = state.tilegrid()[start].clone();
+        if from_tile == to_tile {
+            return false;
+        }
+        state.set_brush(from_tile.clone());
+        let mut mutation = state.mutation();
+        let tilegrid = mutation.tilegrid();
+        for y in 0..GRID_NUM_ROWS {
+            for x in 0..GRID_NUM_COLS {
+                let tile = tilegrid[(x, y)].clone();
+                if tile == to_tile {
+                    tilegrid[(x, y)] = from_tile.clone();
+                } else if tile == from_tile {
+                    tilegrid[(x, y)] = to_tile.clone();
+                }
+            }
+        }
+        true
+    }
 }
 
 impl GuiElement<EditorState> for InnerCanvas {
@@ -310,6 +336,10 @@ impl GuiElement<EditorState> for InnerCanvas {
                     }
                     Tool::PaintBucket => {
                         let changed = self.try_flood_fill(pt, state);
+                        Action::redraw_if(changed).and_stop()
+                    }
+                    Tool::PaletteSwap => {
+                        let changed = self.try_palette_swap(pt, state);
                         Action::redraw_if(changed).and_stop()
                     }
                     Tool::Pencil => {
