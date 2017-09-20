@@ -228,6 +228,29 @@ impl SubGrid {
     pub fn height(&self) -> u32 {
         self.height
     }
+
+    pub fn flip_horz(&mut self) {
+        let mut new_grid: Vec<Option<Tile>> = vec![None; self.grid.len()];
+        for row in 0..self.height {
+            for col in 0..self.width {
+                new_grid[(row * self.width + (self.width - col - 1)) as usize] =
+                    self[(col, row)].clone();
+            }
+        }
+        self.grid = new_grid;
+    }
+
+
+    pub fn flip_vert(&mut self) {
+        let mut new_grid: Vec<Option<Tile>> = vec![None; self.grid.len()];
+        for row in 0..self.height {
+            for col in 0..self.width {
+                new_grid[((self.height - row - 1) * self.width + col) as usize] =
+                    self[(col, row)].clone();
+            }
+        }
+        self.grid = new_grid;
+    }
 }
 
 impl Index<(u32, u32)> for SubGrid {

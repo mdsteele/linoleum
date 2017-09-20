@@ -413,6 +413,28 @@ impl<'a> Mutation<'a> {
         }
     }
 
+    pub fn flip_selection_horz(&mut self) {
+        if let Some((ref mut subgrid, _)) = self.state.current.selection {
+            Rc::make_mut(subgrid).flip_horz();
+       } else {
+            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let mut subgrid = self.tilegrid().cut_subgrid(rect);
+            subgrid.flip_horz();
+            self.tilegrid().paste_subgrid(&subgrid, Point::new(0, 0));
+        }
+    }
+
+    pub fn flip_selection_vert(&mut self) {
+        if let Some((ref mut subgrid, _)) = self.state.current.selection {
+            Rc::make_mut(subgrid).flip_vert();
+        } else {
+            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let mut subgrid = self.tilegrid().cut_subgrid(rect);
+            subgrid.flip_vert();
+            self.tilegrid().paste_subgrid(&subgrid, Point::new(0, 0));
+        }
+    }
+
     pub fn delete_selection(&mut self) {
         self.state.current.selection = None;
     }
