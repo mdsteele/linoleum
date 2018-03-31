@@ -40,12 +40,12 @@ pub fn modulo(a: i32, b: i32) -> i32 {
 // ========================================================================= //
 
 pub fn load_ahf_from_file(path: &String) -> io::Result<ahi::Font> {
-    let mut file = try!(File::open(path));
+    let mut file = File::open(path)?;
     ahi::Font::read(&mut file)
 }
 
 pub fn load_ahi_from_file(path: &String) -> io::Result<Vec<ahi::Image>> {
-    let mut file = try!(File::open(path));
+    let mut file = File::open(path)?;
     ahi::Image::read_all(&mut file)
 }
 

@@ -17,15 +17,15 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use sdl2::rect::{Point, Rect};
-use std::cmp::max;
-use std::rc::Rc;
 use super::canvas::{Canvas, Sprite};
 use super::element::{Action, AggregateElement, GuiElement, SubrectElement};
 use super::event::{Event, Keycode, NONE};
 use super::state::{EditorState, Tool};
 use super::tilegrid::{Tile, Tileset};
 use super::util;
+use sdl2::rect::{Point, Rect};
+use std::cmp::max;
+use std::rc::Rc;
 
 // ========================================================================= //
 
@@ -48,7 +48,8 @@ impl TilePalette {
         assert_eq!(icons.len(), 2);
         let right_arrow = icons.pop().unwrap();
         let left_arrow = icons.pop().unwrap();
-        let elements: Vec<Box<GuiElement<PaletteState>>> = vec![
+        let elements: Vec<Box<GuiElement<PaletteState>>> =
+            vec![
             Box::new(SubrectElement::new(EraserPicker::new(),
                                          Rect::new(2, 2, 42, 20))),
             Box::new(SubrectElement::new(ArrowButton::new(-1, Keycode::Left,
@@ -79,9 +80,7 @@ impl GuiElement<EditorState> for TilePalette {
         self.element.draw(&palette_state, canvas);
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut EditorState)
+    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
                     -> Action {
         let mut palette_state = PaletteState {
             tileset: state.tilegrid().tileset(),
@@ -104,13 +103,10 @@ impl GuiElement<EditorState> for TilePalette {
 
 const SELECTED_COLOR: (u8, u8, u8, u8) = (255, 255, 255, 255);
 
-struct InnerPalette {
-}
+struct InnerPalette {}
 
 impl InnerPalette {
-    fn new() -> InnerPalette {
-        InnerPalette {}
-    }
+    fn new() -> InnerPalette { InnerPalette {} }
 }
 
 impl GuiElement<PaletteState> for InnerPalette {
@@ -126,20 +122,20 @@ impl GuiElement<PaletteState> for InnerPalette {
         }
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut PaletteState)
+    fn handle_event(&mut self, event: &Event, state: &mut PaletteState)
                     -> Action {
         match event {
             &Event::MouseDown(pt) => {
                 let mut found = None;
-                for (index, tile) in state.tileset
-                                          .tiles(state.index)
-                                          .enumerate() {
+                for (index, tile) in state
+                    .tileset
+                    .tiles(state.index)
+                    .enumerate()
+                {
                     let left = 4 + 22 * (index % 2) as i32;
                     let top = 4 + 22 * (index / 2) as i32;
                     let rect = Rect::new(left, top, 16, 16);
-                    if rect.contains(pt) {
+                    if rect.contains_point(pt) {
                         found = Some(Some(tile));
                         break;
                     }
@@ -158,13 +154,10 @@ impl GuiElement<PaletteState> for InnerPalette {
 
 // ========================================================================= //
 
-struct EraserPicker {
-}
+struct EraserPicker {}
 
 impl EraserPicker {
-    fn new() -> EraserPicker {
-        EraserPicker {}
-    }
+    fn new() -> EraserPicker { EraserPicker {} }
 }
 
 impl GuiElement<PaletteState> for EraserPicker {
@@ -178,9 +171,7 @@ impl GuiElement<PaletteState> for EraserPicker {
         }
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut PaletteState)
+    fn handle_event(&mut self, event: &Event, state: &mut PaletteState)
                     -> Action {
         match event {
             &Event::MouseDown(_) => {
@@ -212,9 +203,9 @@ impl ArrowButton {
     fn increment(&self, state: &mut PaletteState) -> Action {
         let num_filenames = state.tileset.num_filenames();
         if num_filenames > 0 {
-            state.index =
-                util::modulo(state.index as i32 + self.delta,
-                             num_filenames as i32) as usize;
+            state.index = util::modulo(state.index as i32 + self.delta,
+                                       num_filenames as i32) as
+                usize;
             Action::redraw().and_stop()
         } else {
             Action::ignore().and_continue()
@@ -227,9 +218,7 @@ impl GuiElement<PaletteState> for ArrowButton {
         canvas.draw_sprite(&self.icon, Point::new(0, 0));
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut PaletteState)
+    fn handle_event(&mut self, event: &Event, state: &mut PaletteState)
                     -> Action {
         match event {
             &Event::MouseDown(_) => self.increment(state),

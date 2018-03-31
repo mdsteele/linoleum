@@ -17,13 +17,13 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use sdl2::rect::{Point, Rect};
-use std::cmp;
-use std::rc::Rc;
 use super::canvas::{Canvas, Font};
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{Event, Keycode};
 use super::state::{EditorState, Mode};
+use sdl2::rect::{Point, Rect};
+use std::cmp;
+use std::rc::Rc;
 
 // ========================================================================= //
 
@@ -34,9 +34,7 @@ pub struct TextBox {
 }
 
 impl TextBox {
-    pub fn new(font: Rc<Font>) -> TextBox {
-        TextBox { font: font }
-    }
+    pub fn new(font: Rc<Font>) -> TextBox { TextBox { font: font } }
 }
 
 impl GuiElement<String> for TextBox {
@@ -80,12 +78,12 @@ impl ModalTextBox {
             left: left,
             top: top,
             font: font.clone(),
-            element:
-                SubrectElement::new(TextBox::new(font),
-                                    Rect::new(left + LABEL_WIDTH,
-                                              top,
-                                              (700 - LABEL_WIDTH) as u32,
-                                              18)),
+            element: SubrectElement::new(TextBox::new(font),
+                                         Rect::new(left + LABEL_WIDTH,
+                                                   top,
+                                                   (700 - LABEL_WIDTH) as
+                                                       u32,
+                                                   18)),
         }
     }
 }
@@ -122,9 +120,7 @@ impl GuiElement<EditorState> for ModalTextBox {
                       label);
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut EditorState)
+    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
                     -> Action {
         match event {
             &Event::KeyDown(Keycode::Escape, _) => {
@@ -154,10 +150,7 @@ impl GuiElement<EditorState> for ModalTextBox {
 
 // ========================================================================= //
 
-fn render_string(canvas: &mut Canvas,
-                 font: &Font,
-                 left: i32,
-                 top: i32,
+fn render_string(canvas: &mut Canvas, font: &Font, left: i32, top: i32,
                  string: &str) {
     canvas.draw_text(font, Point::new(left, top + font.baseline()), string);
 }

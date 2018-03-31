@@ -17,13 +17,13 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
+use super::canvas::Window;
+use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid};
 use sdl2::rect::{Point, Rect};
 use std::fs::File;
 use std::io;
 use std::mem;
 use std::rc::Rc;
-use super::canvas::Window;
-use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid};
 
 // ========================================================================= //
 
@@ -93,29 +93,17 @@ impl EditorState {
         }
     }
 
-    pub fn mode(&self) -> &Mode {
-        &self.mode
-    }
+    pub fn mode(&self) -> &Mode { &self.mode }
 
-    pub fn mode_mut(&mut self) -> &mut Mode {
-        &mut self.mode
-    }
+    pub fn mode_mut(&mut self) -> &mut Mode { &mut self.mode }
 
-    pub fn filepath(&self) -> &String {
-        &self.filepath
-    }
+    pub fn filepath(&self) -> &String { &self.filepath }
 
-    pub fn tilegrid(&self) -> &TileGrid {
-        &self.current.tilegrid
-    }
+    pub fn tilegrid(&self) -> &TileGrid { &self.current.tilegrid }
 
-    pub fn is_unsaved(&self) -> bool {
-        self.current.unsaved
-    }
+    pub fn is_unsaved(&self) -> bool { self.current.unsaved }
 
-    pub fn tool(&self) -> Tool {
-        self.tool
-    }
+    pub fn tool(&self) -> Tool { self.tool }
 
     pub fn set_tool(&mut self, tool: Tool) {
         if self.tool != tool {
@@ -125,13 +113,9 @@ impl EditorState {
         }
     }
 
-    pub fn brush(&self) -> &Option<Tile> {
-        &self.brush
-    }
+    pub fn brush(&self) -> &Option<Tile> { &self.brush }
 
-    pub fn set_brush(&mut self, tile: Option<Tile>) {
-        self.brush = tile;
-    }
+    pub fn set_brush(&mut self, tile: Option<Tile>) { self.brush = tile; }
 
     pub fn eyedrop(&mut self, position: (u32, u32)) {
         self.brush = self.current.tilegrid[position].clone();
@@ -214,8 +198,8 @@ impl EditorState {
 
     pub fn save_to_file(&mut self) -> io::Result<()> {
         self.unselect_if_necessary();
-        let mut file = try!(File::create(&self.filepath));
-        try!(self.tilegrid().save(&mut file));
+        let mut file = File::create(&self.filepath)?;
+        self.tilegrid().save(&mut file)?;
         self.current.unsaved = false;
         for snapshot in self.undo_stack.iter_mut() {
             snapshot.unsaved = true;
@@ -303,10 +287,10 @@ impl EditorState {
             Mode::Edit => false,
             Mode::LoadFile(path) => {
                 match TileGrid::load_from_path(window,
-                                               self.tilegrid()
-                                                   .tileset()
-                                                   .dirpath(),
-                                               &path) {
+                                                 self.tilegrid()
+                                                     .tileset()
+                                                     .dirpath(),
+                                                 &path) {
                     Ok(tilegrid) => {
                         self.filepath = path;
                         self.current.tilegrid = Rc::new(tilegrid);
@@ -387,8 +371,7 @@ impl<'a> Mutation<'a> {
         self.tilegrid().set_background_color(red, green, blue);
     }
 
-    pub fn set_tile_filenames(&mut self,
-                              window: &Window,
+    pub fn set_tile_filenames(&mut self, window: &Window,
                               filenames: Vec<&str>)
                               -> io::Result<()> {
         self.tilegrid().set_tile_filenames(window, filenames)
@@ -416,7 +399,7 @@ impl<'a> Mutation<'a> {
     pub fn flip_selection_horz(&mut self) {
         if let Some((ref mut subgrid, _)) = self.state.current.selection {
             Rc::make_mut(subgrid).flip_horz();
-       } else {
+        } else {
             let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
             let mut subgrid = self.tilegrid().cut_subgrid(rect);
             subgrid.flip_horz();
@@ -435,9 +418,7 @@ impl<'a> Mutation<'a> {
         }
     }
 
-    pub fn delete_selection(&mut self) {
-        self.state.current.selection = None;
-    }
+    pub fn delete_selection(&mut self) { self.state.current.selection = None; }
 
     pub fn cut_selection(&mut self) {
         if self.state.current.selection.is_some() {

@@ -17,13 +17,13 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use sdl2::rect::Point;
-use std::rc::Rc;
 use super::canvas::{Canvas, Font};
 use super::element::{Action, GuiElement};
 use super::event::Event;
-use super::tilegrid::TILE_SIZE;
 use super::state::EditorState;
+use super::tilegrid::TILE_SIZE;
+use sdl2::rect::Point;
+use std::rc::Rc;
 
 // ========================================================================= //
 

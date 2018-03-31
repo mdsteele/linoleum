@@ -17,14 +17,14 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use sdl2::rect::{Point, Rect};
-use std::cmp::{max, min};
 use super::canvas::Canvas;
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{COMMAND, Event, Keycode};
 use super::state::{EditorState, Tool};
 use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, TILE_SIZE};
 use super::util::modulo;
+use sdl2::rect::{Point, Rect};
+use std::cmp::{max, min};
 
 // ========================================================================= //
 
@@ -63,9 +63,7 @@ impl GuiElement<EditorState> for GridCanvas {
         canvas.draw_rect((191, 191, 191, 255), expanded);
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut EditorState)
+    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
                     -> Action {
         self.element.handle_event(event, state)
     }
@@ -100,7 +98,8 @@ impl InnerCanvas {
         }
         let scaled = mouse / TILE_SIZE as i32;
         if scaled.x() < 0 || scaled.x() >= (GRID_NUM_COLS as i32) ||
-           scaled.y() < 0 || scaled.y() >= (GRID_NUM_ROWS as i32) {
+            scaled.y() < 0 || scaled.y() >= (GRID_NUM_ROWS as i32)
+        {
             None
         } else {
             Some((scaled.x() as u32, scaled.y() as u32))
@@ -125,7 +124,8 @@ impl InnerCanvas {
 
     fn dragged_rect(&self) -> Option<Rect> {
         if let Some(((from_col, from_row), (to_col, to_row))) =
-               self.dragged_points() {
+            self.dragged_points()
+        {
             let x = min(from_col, to_col) as i32;
             let y = min(from_row, to_row) as i32;
             let w = ((from_col as i32 - to_col as i32).abs() + 1) as u32;
@@ -241,9 +241,9 @@ impl GuiElement<EditorState> for InnerCanvas {
                          Rect::new((col_range.start * TILE_SIZE) as i32,
                                    (row_range.start * TILE_SIZE) as i32,
                                    (col_range.end - col_range.start) *
-                                   TILE_SIZE,
+                                       TILE_SIZE,
                                    (row_range.end - row_range.start) *
-                                   TILE_SIZE));
+                                       TILE_SIZE));
         for row in row_range {
             for col in col_range.clone() {
                 if let Some(ref tile) = tilegrid[(col, row)] {
@@ -254,12 +254,11 @@ impl GuiElement<EditorState> for InnerCanvas {
             }
         }
         if self.view_size == ViewSize::Full {
-            let rect = Rect::new((horz_margin * TILE_SIZE) as i32,
-                                 (vert_margin * TILE_SIZE) as i32,
-                                 (GRID_NUM_COLS - 2 * horz_margin) *
-                                 TILE_SIZE,
-                                 (GRID_NUM_ROWS - 2 * vert_margin) *
-                                 TILE_SIZE);
+            let rect =
+                Rect::new((horz_margin * TILE_SIZE) as i32,
+                          (vert_margin * TILE_SIZE) as i32,
+                          (GRID_NUM_COLS - 2 * horz_margin) * TILE_SIZE,
+                          (GRID_NUM_ROWS - 2 * vert_margin) * TILE_SIZE);
             canvas.draw_rect((63, 63, 63, 255), rect);
         }
         if let Some((ref selected, topleft)) = state.selection() {
@@ -288,9 +287,7 @@ impl GuiElement<EditorState> for InnerCanvas {
         }
     }
 
-    fn handle_event(&mut self,
-                    event: &Event,
-                    state: &mut EditorState)
+    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
                     -> Action {
         match event {
             &Event::ClockTick => {
@@ -349,7 +346,8 @@ impl GuiElement<EditorState> for InnerCanvas {
                     }
                     Tool::Select => {
                         let rect = if let Some((ref selected, topleft)) =
-                                          state.selection() {
+                            state.selection()
+                        {
                             Some(Rect::new(topleft.x(),
                                            topleft.y(),
                                            selected.width(),
@@ -362,7 +360,8 @@ impl GuiElement<EditorState> for InnerCanvas {
                                           rect.y() * TILE_SIZE as i32,
                                           rect.width() * TILE_SIZE,
                                           rect.height() * TILE_SIZE)
-                                    .contains(pt) {
+                                .contains_point(pt)
+                            {
                                 state.mutation().unselect();
                             } else {
                                 state.reset_persistent_mutation();
@@ -409,10 +408,10 @@ impl GuiElement<EditorState> for InnerCanvas {
                             drag.to_pixel = pt;
                             if state.selection().is_some() {
                                 let position = drag.from_selection +
-                                               (pt - drag.from_pixel) /
-                                               TILE_SIZE as i32;
-                                state.persistent_mutation()
-                                     .reposition_selection(position);
+                                    (pt - drag.from_pixel) / TILE_SIZE as i32;
+                                state
+                                    .persistent_mutation()
+                                    .reposition_selection(position);
                             }
                             Action::redraw().and_continue()
                         } else {

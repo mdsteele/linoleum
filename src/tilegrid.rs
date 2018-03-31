@@ -17,16 +17,16 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
+use super::canvas::{Sprite, Window};
+use super::util;
 use sdl2::rect::{Point, Rect};
-use std::cmp::{max, min, Ordering};
+use std::cmp::{Ordering, max, min};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io;
 use std::ops::{Index, IndexMut};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use super::canvas::{Sprite, Window};
-use super::util;
 
 // ========================================================================= //
 
@@ -37,16 +37,13 @@ pub struct Tileset {
 }
 
 impl Tileset {
-    pub fn load(window: &Window,
-                dirpath: &Path,
-                filenames: &[String])
+    pub fn load(window: &Window, dirpath: &Path, filenames: &[String])
                 -> io::Result<Tileset> {
         let mut tiles = vec![];
         for filename in filenames {
             let path = dirpath.join(filename).with_extension("ahi");
-            let images = try!(util::load_ahi_from_file(&path.to_str()
-                                                            .unwrap()
-                                                            .to_string()));
+            let images =
+                util::load_ahi_from_file(&path.to_str().unwrap().to_string())?;
             let mut sprites = vec![];
             for image in images {
                 let sprite = window.new_sprite(&image);
@@ -55,14 +52,12 @@ impl Tileset {
             tiles.push((filename.to_string(), sprites));
         }
         Ok(Tileset {
-            dirpath: dirpath.to_path_buf(),
-            tiles: tiles,
-        })
+               dirpath: dirpath.to_path_buf(),
+               tiles: tiles,
+           })
     }
 
-    pub fn reload(&mut self,
-                  window: &Window,
-                  filenames: &[&str])
+    pub fn reload(&mut self, window: &Window, filenames: &[&str])
                   -> io::Result<()> {
         let mut old_tiles: BTreeMap<String, Vec<Rc<Sprite>>> = BTreeMap::new();
         for &(ref filename, ref sprites) in self.tiles.iter() {
@@ -74,9 +69,9 @@ impl Tileset {
                 new_tiles.push((filename.to_string(), sprites.clone()));
             } else {
                 let path = self.dirpath.join(filename).with_extension("ahi");
-                let images = try!(util::load_ahi_from_file(&path.to_str()
-                                                                .unwrap()
-                                                                .to_string()));
+                let images = util::load_ahi_from_file(&path.to_str()
+                                                          .unwrap()
+                                                          .to_string())?;
                 let mut sprites = vec![];
                 for image in images {
                     let sprite = window.new_sprite(&image);
@@ -89,13 +84,9 @@ impl Tileset {
         Ok(())
     }
 
-    pub fn dirpath(&self) -> &Path {
-        &self.dirpath
-    }
+    pub fn dirpath(&self) -> &Path { &self.dirpath }
 
-    pub fn num_filenames(&self) -> usize {
-        self.tiles.len()
-    }
+    pub fn num_filenames(&self) -> usize { self.tiles.len() }
 
     pub fn filenames(&self) -> Filenames {
         Filenames {
@@ -121,10 +112,10 @@ impl Tileset {
             return None;
         }
         Some(Tile {
-            filename: filename.clone(),
-            index: tile_index,
-            sprite: sprites[tile_index].clone(),
-        })
+                 filename: filename.clone(),
+                 index: tile_index,
+                 sprite: sprites[tile_index].clone(),
+             })
     }
 }
 
@@ -186,9 +177,7 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn sprite(&self) -> &Sprite {
-        self.sprite.as_ref()
-    }
+    pub fn sprite(&self) -> &Sprite { self.sprite.as_ref() }
 }
 
 impl PartialEq for Tile {
@@ -221,20 +210,16 @@ pub struct SubGrid {
 }
 
 impl SubGrid {
-    pub fn width(&self) -> u32 {
-        self.width
-    }
+    pub fn width(&self) -> u32 { self.width }
 
-    pub fn height(&self) -> u32 {
-        self.height
-    }
+    pub fn height(&self) -> u32 { self.height }
 
     pub fn flip_horz(&mut self) {
         let mut new_grid: Vec<Option<Tile>> = vec![None; self.grid.len()];
         for row in 0..self.height {
             for col in 0..self.width {
-                new_grid[(row * self.width + (self.width - col - 1)) as usize] =
-                    self[(col, row)].clone();
+                new_grid[(row * self.width + (self.width - col - 1)) as
+                             usize] = self[(col, row)].clone();
             }
         }
         self.grid = new_grid;
@@ -245,8 +230,8 @@ impl SubGrid {
         let mut new_grid: Vec<Option<Tile>> = vec![None; self.grid.len()];
         for row in 0..self.height {
             for col in 0..self.width {
-                new_grid[((self.height - row - 1) * self.width + col) as usize] =
-                    self[(col, row)].clone();
+                new_grid[((self.height - row - 1) * self.width + col) as
+                             usize] = self[(col, row)].clone();
             }
         }
         self.grid = new_grid;
@@ -293,19 +278,14 @@ impl TileGrid {
         self.background_color = (red, green, blue);
     }
 
-    pub fn tileset(&self) -> Rc<Tileset> {
-        self.tileset.clone()
-    }
+    pub fn tileset(&self) -> Rc<Tileset> { self.tileset.clone() }
 
-    pub fn set_tile_filenames(&mut self,
-                              window: &Window,
+    pub fn set_tile_filenames(&mut self, window: &Window,
                               filenames: Vec<&str>)
                               -> io::Result<()> {
-        try!(Rc::make_mut(&mut self.tileset).reload(window, &filenames));
-        let filenames_set: BTreeSet<String> = filenames.iter()
-                                                       .cloned()
-                                                       .map(str::to_string)
-                                                       .collect();
+        Rc::make_mut(&mut self.tileset).reload(window, &filenames)?;
+        let filenames_set: BTreeSet<String> =
+            filenames.iter().cloned().map(str::to_string).collect();
         for tile in self.grid.iter_mut() {
             let bad = match *tile {
                 Some(ref tile) => !filenames_set.contains(&tile.filename),
@@ -378,11 +358,11 @@ impl TileGrid {
 
     pub fn save<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         let (red, green, blue) = self.background_color;
-        try!(write!(writer, "@BG {} {} {}\n", red, green, blue));
+        write!(writer, "@BG {} {} {}\n", red, green, blue)?;
         for filename in self.tileset.filenames() {
-            try!(write!(writer, ">{}\n", filename));
+            write!(writer, ">{}\n", filename)?;
         }
-        try!(write!(writer, "\n"));
+        write!(writer, "\n")?;
         let mut map = BTreeMap::<String, usize>::new();
         for (index, filename) in self.tileset.filenames().enumerate() {
             map.insert(filename.clone(), index);
@@ -393,37 +373,35 @@ impl TileGrid {
                 match self[(col, row)] {
                     Some(ref tile) => {
                         for _ in 0..spaces {
-                            try!(write!(writer, "  "));
+                            write!(writer, "  ")?;
                         }
                         spaces = 0;
                         let file_index = *map.get(&tile.filename).unwrap();
                         let char1 = index_to_base62(file_index);
                         let char2 = index_to_base62(tile.index);
-                        try!(write!(writer, "{}{}", char1, char2));
+                        write!(writer, "{}{}", char1, char2)?;
                     }
                     None => {
                         spaces += 1;
                     }
                 }
             }
-            try!(write!(writer, "\n"));
+            write!(writer, "\n")?;
         }
         Ok(())
     }
 
-    pub fn load<R: io::Read>(window: &Window,
-                             dirpath: &Path,
-                             mut reader: R)
+    pub fn load<R: io::Read>(window: &Window, dirpath: &Path, mut reader: R)
                              -> io::Result<TileGrid> {
-        try!(read_exactly(reader.by_ref(), b"@BG "));
-        let red = try!(read_int(reader.by_ref(), b' ')) as u8;
-        let green = try!(read_int(reader.by_ref(), b' ')) as u8;
-        let blue = try!(read_int(reader.by_ref(), b'\n')) as u8;
+        read_exactly(reader.by_ref(), b"@BG ")?;
+        let red = read_int(reader.by_ref(), b' ')? as u8;
+        let green = read_int(reader.by_ref(), b' ')? as u8;
+        let blue = read_int(reader.by_ref(), b'\n')? as u8;
         let mut filenames = Vec::new();
         loop {
-            match try!(read_byte(reader.by_ref())) {
+            match read_byte(reader.by_ref())? {
                 b'>' => {
-                    filenames.push(try!(read_string(reader.by_ref(), b'\n')));
+                    filenames.push(read_string(reader.by_ref(), b'\n')?);
                 }
                 b'\n' => break,
                 byte => {
@@ -433,12 +411,12 @@ impl TileGrid {
                 }
             }
         }
-        let tileset = try!(Tileset::load(window, dirpath, &filenames));
+        let tileset = Tileset::load(window, dirpath, &filenames)?;
         let mut grid = Vec::new();
         for _ in 0..GRID_NUM_ROWS {
             let mut col = 0;
             loop {
-                let byte1 = try!(read_byte(reader.by_ref()));
+                let byte1 = read_byte(reader.by_ref())?;
                 if byte1 == b'\n' {
                     for _ in col..GRID_NUM_COLS {
                         grid.push(None);
@@ -449,37 +427,38 @@ impl TileGrid {
                     return Err(io::Error::new(io::ErrorKind::InvalidData,
                                               "too many columns"));
                 }
-                let byte2 = try!(read_byte(reader.by_ref()));
+                let byte2 = read_byte(reader.by_ref())?;
                 if byte1 == b' ' && byte2 == b' ' {
                     grid.push(None);
                 } else {
-                    let file_index = try!(base62_to_index(byte1));
-                    let tile_index = try!(base62_to_index(byte2));
+                    let file_index = base62_to_index(byte1)?;
+                    let tile_index = base62_to_index(byte2)?;
                     let opt_tile = tileset.get(file_index, tile_index);
-                    let tile = try!(opt_tile.ok_or_else(|| {
-                        let msg = format!("invalid tile: {} {}", byte1, byte2);
-                        io::Error::new(io::ErrorKind::InvalidData, msg)
-                    }));
+                    let tile = opt_tile
+                        .ok_or_else(|| {
+                            let msg =
+                                format!("invalid tile: {} {}", byte1, byte2);
+                            io::Error::new(io::ErrorKind::InvalidData, msg)
+                        })?;
                     grid.push(Some(tile));
                 }
                 col += 1;
             }
         }
         Ok(TileGrid {
-            background_color: (red, green, blue),
-            tileset: Rc::new(tileset),
-            grid: grid,
-        })
+               background_color: (red, green, blue),
+               tileset: Rc::new(tileset),
+               grid: grid,
+           })
     }
 
-    pub fn load_from_path(window: &Window,
-                          dirpath: &Path,
-                          path: &String)
+    pub fn load_from_path(window: &Window, dirpath: &Path, path: &String)
                           -> io::Result<TileGrid> {
-        TileGrid::load(window, dirpath, try!(File::open(path)))
+        TileGrid::load(window, dirpath, File::open(path)?)
     }
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 fn index_to_base62(index: usize) -> char {
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
      'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b',
@@ -533,7 +512,7 @@ fn read_byte<R: io::Read>(reader: R) -> io::Result<u8> {
 
 fn read_exactly<R: io::Read>(mut reader: R, string: &[u8]) -> io::Result<()> {
     let mut actual = vec![0u8; string.len()];
-    try!(reader.read_exact(&mut actual));
+    reader.read_exact(&mut actual)?;
     if &actual as &[u8] != string {
         let msg = format!("expected '{}', found '{}'",
                           String::from_utf8_lossy(string),
@@ -547,7 +526,7 @@ fn read_exactly<R: io::Read>(mut reader: R, string: &[u8]) -> io::Result<()> {
 fn read_int<R: io::Read>(reader: R, terminator: u8) -> io::Result<u32> {
     let mut value: u32 = 0;
     for next in reader.bytes() {
-        let byte = try!(next);
+        let byte = next?;
         if byte == terminator {
             break;
         }
@@ -571,7 +550,7 @@ fn read_int<R: io::Read>(reader: R, terminator: u8) -> io::Result<u32> {
 fn read_string<R: io::Read>(reader: R, terminator: u8) -> io::Result<String> {
     let mut result = Vec::new();
     for next in reader.bytes() {
-        let byte = try!(next);
+        let byte = next?;
         if byte == terminator {
             break;
         }

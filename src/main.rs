@@ -53,8 +53,7 @@ use std::rc::Rc;
 const FRAME_DELAY_MILLIS: u32 = 100;
 
 fn render_screen<E: GuiElement<EditorState>>(window: &mut Window,
-                                             state: &EditorState,
-                                             gui: &E) {
+                                             state: &EditorState, gui: &E) {
     {
         let mut canvas = window.canvas();
         canvas.clear((64, 64, 64, 255));
@@ -96,8 +95,8 @@ fn main() {
         print!("{}", opts.usage(&brief));
         std::process::exit(0);
     }
-    let tiles_dir = PathBuf::from(matches.opt_str("tiles")
-                                         .unwrap_or("tiles".to_string()));
+    let tiles_dir =
+        PathBuf::from(matches.opt_str("tiles").unwrap_or("tiles".to_string()));
 
     let sdl_context = sdl2::init().unwrap();
     let event_subsystem = sdl_context.event().unwrap();
@@ -106,14 +105,13 @@ fn main() {
 
     let window_width = 720;
     let window_height = 450;
-    let sdl_window = video_subsystem.window("Linoleum",
-                                            window_width,
-                                            window_height)
-                                    .position_centered()
-                                    .fullscreen_desktop()
-                                    .build()
-                                    .unwrap();
-    let mut renderer = sdl_window.renderer().build().unwrap();
+    let sdl_window = video_subsystem
+        .window("Linoleum", window_width, window_height)
+        .position_centered()
+        .fullscreen_desktop()
+        .build()
+        .unwrap();
+    let mut renderer = sdl_window.into_canvas().build().unwrap();
     renderer.set_logical_size(window_width, window_height).unwrap();
     let mut window = Window::from_renderer(&mut renderer);
 
@@ -131,32 +129,33 @@ fn main() {
             }
         }
     } else {
-        let tileset = Tileset::load(&window,
-                                    &tiles_dir,
-                                    &["green_pipes".to_string()])
-                          .unwrap();
+        let tileset =
+            Tileset::load(&window, &tiles_dir, &["green_pipes".to_string()])
+                .unwrap();
         EditorState::new("out.bg".to_string(), TileGrid::new(tileset))
     };
 
-    let elements: Vec<Box<GuiElement<EditorState>>> = vec![
-        Box::new(ModalTextBox::new(10, 420, font.clone())),
-        Box::new(Toolbox::new(10, 10, tool_icons)),
-        Box::new(TilePalette::new(10, 92, arrow_icons)),
-        Box::new(GridCanvas::new(72, 10)),
-        Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
-        Box::new(CoordsIndicator::new(658, 354, font.clone())),
-    ];
+    let elements: Vec<Box<GuiElement<EditorState>>> =
+        vec![
+            Box::new(ModalTextBox::new(10, 420, font.clone())),
+            Box::new(Toolbox::new(10, 10, tool_icons)),
+            Box::new(TilePalette::new(10, 92, arrow_icons)),
+            Box::new(GridCanvas::new(72, 10)),
+            Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
+            Box::new(CoordsIndicator::new(658, 354, font.clone())),
+        ];
     let mut gui = AggregateElement::new(elements);
 
     render_screen(&mut window, &state, &gui);
 
     Event::register_clock_ticks(&event_subsystem);
-    let _timer =
-        timer_subsystem.add_timer(FRAME_DELAY_MILLIS,
-                                  Box::new(|| {
-                                      Event::push_clock_tick(&event_subsystem);
-                                      FRAME_DELAY_MILLIS
-                                  }));
+    let _timer = timer_subsystem.add_timer(
+        FRAME_DELAY_MILLIS,
+        Box::new(|| {
+            Event::push_clock_tick(&event_subsystem);
+            FRAME_DELAY_MILLIS
+        }),
+    );
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     loop {
