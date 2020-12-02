@@ -18,7 +18,7 @@
 // +--------------------------------------------------------------------------+
 
 use super::canvas::Window;
-use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, SubGrid, Tile, TileGrid};
+use super::tilegrid::{SubGrid, Tile, TileGrid, GRID_NUM_COLS, GRID_NUM_ROWS};
 use sdl2::rect::{Point, Rect};
 use std::fs::File;
 use std::io;
@@ -76,7 +76,7 @@ impl EditorState {
     pub fn new(filepath: String, tilegrid: TileGrid) -> EditorState {
         EditorState {
             mode: Mode::Edit,
-            filepath: filepath,
+            filepath,
             current: Snapshot {
                 tilegrid: Rc::new(tilegrid),
                 selection: None,
@@ -93,17 +93,29 @@ impl EditorState {
         }
     }
 
-    pub fn mode(&self) -> &Mode { &self.mode }
+    pub fn mode(&self) -> &Mode {
+        &self.mode
+    }
 
-    pub fn mode_mut(&mut self) -> &mut Mode { &mut self.mode }
+    pub fn mode_mut(&mut self) -> &mut Mode {
+        &mut self.mode
+    }
 
-    pub fn filepath(&self) -> &String { &self.filepath }
+    pub fn filepath(&self) -> &String {
+        &self.filepath
+    }
 
-    pub fn tilegrid(&self) -> &TileGrid { &self.current.tilegrid }
+    pub fn tilegrid(&self) -> &TileGrid {
+        &self.current.tilegrid
+    }
 
-    pub fn is_unsaved(&self) -> bool { self.current.unsaved }
+    pub fn is_unsaved(&self) -> bool {
+        self.current.unsaved
+    }
 
-    pub fn tool(&self) -> Tool { self.tool }
+    pub fn tool(&self) -> Tool {
+        self.tool
+    }
 
     pub fn set_tool(&mut self, tool: Tool) {
         if self.tool != tool {
@@ -113,9 +125,13 @@ impl EditorState {
         }
     }
 
-    pub fn brush(&self) -> &Option<Tile> { &self.brush }
+    pub fn brush(&self) -> &Option<Tile> {
+        &self.brush
+    }
 
-    pub fn set_brush(&mut self, tile: Option<Tile>) { self.brush = tile; }
+    pub fn set_brush(&mut self, tile: Option<Tile>) {
+        self.brush = tile;
+    }
 
     pub fn eyedrop(&mut self, position: (u32, u32)) {
         self.brush = self.current.tilegrid[position].clone();
@@ -286,11 +302,11 @@ impl EditorState {
         match self.mode.clone() {
             Mode::Edit => false,
             Mode::LoadFile(path) => {
-                match TileGrid::load_from_path(window,
-                                                 self.tilegrid()
-                                                     .tileset()
-                                                     .dirpath(),
-                                                 &path) {
+                match TileGrid::load_from_path(
+                    window,
+                    self.tilegrid().tileset().dirpath(),
+                    &path,
+                ) {
                     Ok(tilegrid) => {
                         self.filepath = path;
                         self.current.tilegrid = Rc::new(tilegrid);
@@ -371,17 +387,19 @@ impl<'a> Mutation<'a> {
         self.tilegrid().set_background_color(red, green, blue);
     }
 
-    pub fn set_tile_filenames(&mut self, window: &Window,
-                              filenames: Vec<&str>)
-                              -> io::Result<()> {
+    pub fn set_tile_filenames(
+        &mut self,
+        window: &Window,
+        filenames: Vec<&str>,
+    ) -> io::Result<()> {
         self.tilegrid().set_tile_filenames(window, filenames)
     }
 
     pub fn select(&mut self, rect: Rect) {
         self.unselect();
         let subgrid = self.tilegrid().cut_subgrid(rect);
-        self.state.current.selection = Some((Rc::new(subgrid),
-                                             rect.top_left()));
+        self.state.current.selection =
+            Some((Rc::new(subgrid), rect.top_left()));
         self.state.prev_tool = self.state.tool;
         self.state.tool = Tool::Select;
     }
@@ -418,7 +436,9 @@ impl<'a> Mutation<'a> {
         }
     }
 
-    pub fn delete_selection(&mut self) { self.state.current.selection = None; }
+    pub fn delete_selection(&mut self) {
+        self.state.current.selection = None;
+    }
 
     pub fn cut_selection(&mut self) {
         if self.state.current.selection.is_some() {

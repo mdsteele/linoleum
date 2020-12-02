@@ -34,7 +34,9 @@ pub struct TextBox {
 }
 
 impl TextBox {
-    pub fn new(font: Rc<Font>) -> TextBox { TextBox { font: font } }
+    pub fn new(font: Rc<Font>) -> TextBox {
+        TextBox { font }
+    }
 }
 
 impl GuiElement<String> for TextBox {
@@ -75,15 +77,18 @@ pub struct ModalTextBox {
 impl ModalTextBox {
     pub fn new(left: i32, top: i32, font: Rc<Font>) -> ModalTextBox {
         ModalTextBox {
-            left: left,
-            top: top,
+            left,
+            top,
             font: font.clone(),
-            element: SubrectElement::new(TextBox::new(font),
-                                         Rect::new(left + LABEL_WIDTH,
-                                                   top,
-                                                   (700 - LABEL_WIDTH) as
-                                                       u32,
-                                                   18)),
+            element: SubrectElement::new(
+                TextBox::new(font),
+                Rect::new(
+                    left + LABEL_WIDTH,
+                    top,
+                    (700 - LABEL_WIDTH) as u32,
+                    18,
+                ),
+            ),
         }
     }
 }
@@ -113,15 +118,20 @@ impl GuiElement<EditorState> for ModalTextBox {
             }
         };
         let text_width = self.font.text_width(label);
-        render_string(canvas,
-                      &self.font,
-                      self.left + LABEL_WIDTH - text_width - 2,
-                      self.top + 4,
-                      label);
+        render_string(
+            canvas,
+            &self.font,
+            self.left + LABEL_WIDTH - text_width - 2,
+            self.top + 4,
+            label,
+        );
     }
 
-    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
-                    -> Action {
+    fn handle_event(
+        &mut self,
+        event: &Event,
+        state: &mut EditorState,
+    ) -> Action {
         match event {
             &Event::KeyDown(Keycode::Escape, _) => {
                 if state.mode_cancel() {
@@ -133,25 +143,28 @@ impl GuiElement<EditorState> for ModalTextBox {
             &Event::KeyDown(Keycode::Return, _) => {
                 Action::ignore().and_stop_if(state.enqueue_mode_perform())
             }
-            _ => {
-                match *state.mode_mut() {
-                    Mode::Edit => Action::ignore().and_continue(),
-                    Mode::LoadFile(ref mut text) |
-                    Mode::SaveAs(ref mut text) |
-                    Mode::ChangeColor(ref mut text) |
-                    Mode::ChangeTiles(ref mut text) => {
-                        self.element.handle_event(event, text)
-                    }
+            _ => match *state.mode_mut() {
+                Mode::Edit => Action::ignore().and_continue(),
+                Mode::LoadFile(ref mut text)
+                | Mode::SaveAs(ref mut text)
+                | Mode::ChangeColor(ref mut text)
+                | Mode::ChangeTiles(ref mut text) => {
+                    self.element.handle_event(event, text)
                 }
-            }
+            },
         }
     }
 }
 
 // ========================================================================= //
 
-fn render_string(canvas: &mut Canvas, font: &Font, left: i32, top: i32,
-                 string: &str) {
+fn render_string(
+    canvas: &mut Canvas,
+    font: &Font,
+    left: i32,
+    top: i32,
+    string: &str,
+) {
     canvas.draw_text(font, Point::new(left, top + font.baseline()), string);
 }
 

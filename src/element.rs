@@ -30,17 +30,25 @@ pub struct Action {
 }
 
 impl Action {
-    pub fn ignore() -> ActionBuilder { ActionBuilder { redraw: false } }
+    pub fn ignore() -> ActionBuilder {
+        ActionBuilder { redraw: false }
+    }
 
-    pub fn redraw() -> ActionBuilder { ActionBuilder { redraw: true } }
+    pub fn redraw() -> ActionBuilder {
+        ActionBuilder { redraw: true }
+    }
 
     pub fn redraw_if(condition: bool) -> ActionBuilder {
         ActionBuilder { redraw: condition }
     }
 
-    pub fn should_redraw(&self) -> bool { self.redraw }
+    pub fn should_redraw(&self) -> bool {
+        self.redraw
+    }
 
-    pub fn should_stop(&self) -> bool { self.stop }
+    pub fn should_stop(&self) -> bool {
+        self.stop
+    }
 
     fn merge(&mut self, action: Action) {
         self.redraw |= action.redraw;
@@ -55,24 +63,15 @@ pub struct ActionBuilder {
 
 impl ActionBuilder {
     pub fn and_continue(&self) -> Action {
-        Action {
-            redraw: self.redraw,
-            stop: false,
-        }
+        Action { redraw: self.redraw, stop: false }
     }
 
     pub fn and_stop(&self) -> Action {
-        Action {
-            redraw: self.redraw,
-            stop: true,
-        }
+        Action { redraw: self.redraw, stop: true }
     }
 
     pub fn and_stop_if(&self, condition: bool) -> Action {
-        Action {
-            redraw: self.redraw,
-            stop: condition,
-        }
+        Action { redraw: self.redraw, stop: condition }
     }
 }
 
@@ -92,13 +91,12 @@ pub struct SubrectElement<E> {
 
 impl<E> SubrectElement<E> {
     pub fn new(element: E, subrect: Rect) -> SubrectElement<E> {
-        SubrectElement {
-            subrect: subrect,
-            element: element,
-        }
+        SubrectElement { subrect, element }
     }
 
-    pub fn rect(&self) -> Rect { self.subrect }
+    pub fn rect(&self) -> Rect {
+        self.subrect
+    }
 }
 
 impl<E, S> GuiElement<S> for SubrectElement<E>
@@ -129,12 +127,12 @@ where
 // ========================================================================= //
 
 pub struct AggregateElement<S> {
-    elements: Vec<Box<GuiElement<S>>>,
+    elements: Vec<Box<dyn GuiElement<S>>>,
 }
 
 impl<S> AggregateElement<S> {
-    pub fn new(elements: Vec<Box<GuiElement<S>>>) -> AggregateElement<S> {
-        AggregateElement { elements: elements }
+    pub fn new(elements: Vec<Box<dyn GuiElement<S>>>) -> AggregateElement<S> {
+        AggregateElement { elements }
     }
 }
 

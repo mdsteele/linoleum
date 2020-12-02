@@ -34,10 +34,7 @@ pub struct CoordsIndicator {
 
 impl CoordsIndicator {
     pub fn new(left: i32, top: i32, font: Rc<Font>) -> CoordsIndicator {
-        CoordsIndicator {
-            topleft: Point::new(left, top),
-            font: font,
-        }
+        CoordsIndicator { topleft: Point::new(left, top), font }
     }
 }
 
@@ -49,18 +46,26 @@ impl GuiElement<EditorState> for CoordsIndicator {
             let top = position.y() * size;
             let right = left + subgrid.width() as i32 * size;
             let bottom = top + subgrid.height() as i32 * size;
-            canvas.draw_text(&self.font,
-                             self.topleft + Point::new(15, 10),
-                             &format!("{}", top));
-            canvas.draw_text(&self.font,
-                             self.topleft + Point::new(0, 25),
-                             &format!("{}", left));
-            canvas.draw_text(&self.font,
-                             self.topleft + Point::new(30, 25),
-                             &format!("{}", right));
-            canvas.draw_text(&self.font,
-                             self.topleft + Point::new(15, 40),
-                             &format!("{}", bottom));
+            canvas.draw_text(
+                &self.font,
+                self.topleft + Point::new(15, 10),
+                &format!("{}", top),
+            );
+            canvas.draw_text(
+                &self.font,
+                self.topleft + Point::new(0, 25),
+                &format!("{}", left),
+            );
+            canvas.draw_text(
+                &self.font,
+                self.topleft + Point::new(30, 25),
+                &format!("{}", right),
+            );
+            canvas.draw_text(
+                &self.font,
+                self.topleft + Point::new(15, 40),
+                &format!("{}", bottom),
+            );
         }
     }
 

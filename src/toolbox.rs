@@ -38,36 +38,32 @@ impl Toolbox {
         let eyedrop_icon = icons.pop().unwrap();
         let bucket_icon = icons.pop().unwrap();
         let pencil_icon = icons.pop().unwrap();
-        let elements: Vec<Box<GuiElement<Tool>>> =
-            vec![
-                Toolbox::picker(2, 2, Tool::Pencil, Keycode::P, pencil_icon),
-                Toolbox::picker(2,
-                                24,
-                                Tool::PaintBucket,
-                                Keycode::K,
-                                bucket_icon),
-                Toolbox::picker(2,
-                                46,
-                                Tool::PaletteSwap,
-                                Keycode::W,
-                                swap_icon),
-                Toolbox::picker(24,
-                                2,
-                                Tool::Eyedropper,
-                                Keycode::Y,
-                                eyedrop_icon),
-                Toolbox::picker(24, 24, Tool::Select, Keycode::S, select_icon),
-            ];
+        let elements: Vec<Box<dyn GuiElement<Tool>>> = vec![
+            Toolbox::picker(2, 2, Tool::Pencil, Keycode::P, pencil_icon),
+            Toolbox::picker(2, 24, Tool::PaintBucket, Keycode::K, bucket_icon),
+            Toolbox::picker(2, 46, Tool::PaletteSwap, Keycode::W, swap_icon),
+            Toolbox::picker(24, 2, Tool::Eyedropper, Keycode::Y, eyedrop_icon),
+            Toolbox::picker(24, 24, Tool::Select, Keycode::S, select_icon),
+        ];
         Toolbox {
-            element: SubrectElement::new(AggregateElement::new(elements),
-                                         Rect::new(left, top, 46, 68)),
+            element: SubrectElement::new(
+                AggregateElement::new(elements),
+                Rect::new(left, top, 46, 68),
+            ),
         }
     }
 
-    fn picker(x: i32, y: i32, tool: Tool, key: Keycode, icon: Sprite)
-              -> Box<GuiElement<Tool>> {
-        Box::new(SubrectElement::new(ToolPicker::new(tool, key, icon),
-                                     Rect::new(x, y, 20, 20)))
+    fn picker(
+        x: i32,
+        y: i32,
+        tool: Tool,
+        key: Keycode,
+        icon: Sprite,
+    ) -> Box<dyn GuiElement<Tool>> {
+        Box::new(SubrectElement::new(
+            ToolPicker::new(tool, key, icon),
+            Rect::new(x, y, 20, 20),
+        ))
     }
 }
 
@@ -77,8 +73,11 @@ impl GuiElement<EditorState> for Toolbox {
         self.element.draw(&state.tool(), canvas);
     }
 
-    fn handle_event(&mut self, event: &Event, state: &mut EditorState)
-                    -> Action {
+    fn handle_event(
+        &mut self,
+        event: &Event,
+        state: &mut EditorState,
+    ) -> Action {
         let mut new_tool = state.tool();
         let action = self.element.handle_event(event, &mut new_tool);
         if new_tool != state.tool() {
@@ -98,11 +97,7 @@ struct ToolPicker {
 
 impl ToolPicker {
     fn new(tool: Tool, key: Keycode, icon: Sprite) -> ToolPicker {
-        ToolPicker {
-            tool: tool,
-            key: key,
-            icon: icon,
-        }
+        ToolPicker { tool, key, icon }
     }
 }
 

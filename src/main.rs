@@ -37,7 +37,7 @@ mod util;
 use self::canvas::{Font, Sprite, Window};
 use self::coords::CoordsIndicator;
 use self::element::{Action, AggregateElement, GuiElement};
-use self::event::{COMMAND, Event, Keycode, SHIFT};
+use self::event::{Event, Keycode, COMMAND, SHIFT};
 use self::paint::GridCanvas;
 use self::palette::TilePalette;
 use self::state::EditorState;
@@ -52,8 +52,11 @@ use std::rc::Rc;
 
 const FRAME_DELAY_MILLIS: u32 = 100;
 
-fn render_screen<E: GuiElement<EditorState>>(window: &mut Window,
-                                             state: &EditorState, gui: &E) {
+fn render_screen<E: GuiElement<EditorState>>(
+    window: &mut Window,
+    state: &EditorState,
+    gui: &E,
+) {
     {
         let mut canvas = window.canvas();
         canvas.clear((64, 64, 64, 255));
@@ -135,15 +138,14 @@ fn main() {
         EditorState::new("out.bg".to_string(), TileGrid::new(tileset))
     };
 
-    let elements: Vec<Box<GuiElement<EditorState>>> =
-        vec![
-            Box::new(ModalTextBox::new(10, 420, font.clone())),
-            Box::new(Toolbox::new(10, 10, tool_icons)),
-            Box::new(TilePalette::new(10, 92, arrow_icons)),
-            Box::new(GridCanvas::new(72, 10)),
-            Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
-            Box::new(CoordsIndicator::new(658, 354, font.clone())),
-        ];
+    let elements: Vec<Box<dyn GuiElement<EditorState>>> = vec![
+        Box::new(ModalTextBox::new(10, 420, font.clone())),
+        Box::new(Toolbox::new(10, 10, tool_icons)),
+        Box::new(TilePalette::new(10, 92, arrow_icons)),
+        Box::new(GridCanvas::new(72, 10)),
+        Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
+        Box::new(CoordsIndicator::new(658, 354, font.clone())),
+    ];
     let mut gui = AggregateElement::new(elements);
 
     render_screen(&mut window, &state, &gui);
