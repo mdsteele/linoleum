@@ -21,7 +21,7 @@ use super::canvas::Canvas;
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{Event, Keycode, COMMAND, SHIFT};
 use super::state::{EditorState, Tool};
-use super::tilegrid::{TileGrid, TILE_SIZE};
+use super::tilegrid::TileGrid;
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min};
 
@@ -103,7 +103,7 @@ impl InnerCanvas {
         if mouse.x() < 0 || mouse.y() < 0 {
             return None;
         }
-        let scaled = mouse / TILE_SIZE as i32;
+        let scaled = mouse / tilegrid.tile_size() as i32;
         if scaled.x() < 0
             || scaled.x() >= (tilegrid.width() as i32)
             || scaled.y() < 0
@@ -120,7 +120,7 @@ impl InnerCanvas {
         mouse: Point,
         tilegrid: &TileGrid,
     ) -> (u32, u32) {
-        let scaled = mouse / TILE_SIZE as i32;
+        let scaled = mouse / tilegrid.tile_size() as i32;
         (
             max(0, min(scaled.x(), tilegrid.width() as i32 - 1)) as u32,
             max(0, min(scaled.y(), tilegrid.height() as i32 - 1)) as u32,
@@ -267,10 +267,10 @@ impl GuiElement<EditorState> for InnerCanvas {
         canvas.fill_rect(
             tilegrid.background_color(),
             Rect::new(
-                (col_range.start * TILE_SIZE) as i32,
-                (row_range.start * TILE_SIZE) as i32,
-                (col_range.end - col_range.start) * TILE_SIZE,
-                (row_range.end - row_range.start) * TILE_SIZE,
+                (col_range.start * tilegrid.tile_size()) as i32,
+                (row_range.start * tilegrid.tile_size()) as i32,
+                (col_range.end - col_range.start) * tilegrid.tile_size(),
+                (row_range.end - row_range.start) * tilegrid.tile_size(),
             ),
         );
         for row in row_range {
@@ -279,8 +279,8 @@ impl GuiElement<EditorState> for InnerCanvas {
                     canvas.draw_sprite(
                         tile.sprite(),
                         Point::new(
-                            (col * TILE_SIZE) as i32,
-                            (row * TILE_SIZE) as i32,
+                            (col * tilegrid.tile_size()) as i32,
+                            (row * tilegrid.tile_size()) as i32,
                         ),
                     );
                 }
@@ -288,10 +288,10 @@ impl GuiElement<EditorState> for InnerCanvas {
         }
         if self.view_size == ViewSize::Full {
             let rect = Rect::new(
-                (horz_margin * TILE_SIZE) as i32,
-                (vert_margin * TILE_SIZE) as i32,
-                (tilegrid.width() - 2 * horz_margin) * TILE_SIZE,
-                (tilegrid.height() - 2 * vert_margin) * TILE_SIZE,
+                (horz_margin * tilegrid.tile_size()) as i32,
+                (vert_margin * tilegrid.tile_size()) as i32,
+                (tilegrid.width() - 2 * horz_margin) * tilegrid.tile_size(),
+                (tilegrid.height() - 2 * vert_margin) * tilegrid.tile_size(),
             );
             canvas.draw_rect((63, 63, 63, 255), rect);
         }
@@ -300,16 +300,17 @@ impl GuiElement<EditorState> for InnerCanvas {
                 for col in 0..selected.width() {
                     if let Some(ref tile) = selected[(col, row)] {
                         let coords = Point::new(col as i32, row as i32);
-                        let pos = (coords + topleft) * (TILE_SIZE as i32);
+                        let pos =
+                            (coords + topleft) * (tilegrid.tile_size() as i32);
                         canvas.draw_sprite(tile.sprite(), pos);
                     }
                 }
             }
             let marquee_rect = Rect::new(
-                topleft.x() * (TILE_SIZE as i32),
-                topleft.y() * (TILE_SIZE as i32),
-                selected.width() * TILE_SIZE,
-                selected.height() * TILE_SIZE,
+                topleft.x() * (tilegrid.tile_size() as i32),
+                topleft.y() * (tilegrid.tile_size() as i32),
+                selected.width() * tilegrid.tile_size(),
+                selected.height() * tilegrid.tile_size(),
             );
             draw_marquee(
                 canvas,
@@ -318,10 +319,10 @@ impl GuiElement<EditorState> for InnerCanvas {
             );
         } else if let Some(rect) = self.dragged_rect(tilegrid) {
             let marquee_rect = Rect::new(
-                rect.x() * (TILE_SIZE as i32),
-                rect.y() * (TILE_SIZE as i32),
-                rect.width() * TILE_SIZE,
-                rect.height() * TILE_SIZE,
+                rect.x() * (tilegrid.tile_size() as i32),
+                rect.y() * (tilegrid.tile_size() as i32),
+                rect.width() * tilegrid.tile_size(),
+                rect.height() * tilegrid.tile_size(),
             );
             draw_marquee(canvas, marquee_rect, 0);
         }
@@ -404,11 +405,12 @@ impl GuiElement<EditorState> for InnerCanvas {
                         None
                     };
                     if let Some(rect) = rect {
+                        let tilegrid = state.tilegrid();
                         if !Rect::new(
-                            rect.x() * TILE_SIZE as i32,
-                            rect.y() * TILE_SIZE as i32,
-                            rect.width() * TILE_SIZE,
-                            rect.height() * TILE_SIZE,
+                            rect.x() * tilegrid.tile_size() as i32,
+                            rect.y() * tilegrid.tile_size() as i32,
+                            rect.width() * tilegrid.tile_size(),
+                            rect.height() * tilegrid.tile_size(),
                         )
                         .contains_point(pt)
                         {
@@ -458,7 +460,8 @@ impl GuiElement<EditorState> for InnerCanvas {
                         drag.to_pixel = pt;
                         if state.selection().is_some() {
                             let position = drag.from_selection
-                                + (pt - drag.from_pixel) / TILE_SIZE as i32;
+                                + (pt - drag.from_pixel)
+                                    / state.tilegrid().tile_size() as i32;
                             state
                                 .persistent_mutation()
                                 .reposition_selection(position);

@@ -31,10 +31,13 @@ use std::rc::Rc;
 
 //===========================================================================//
 
+const DEFAULT_TILE_SIZE: u32 = 8;
+
 #[derive(Clone)]
 pub struct Tileset {
     dirpath: PathBuf,
     tiles: Vec<(String, Vec<Rc<Sprite>>)>,
+    tile_size: u32,
 }
 
 impl Tileset {
@@ -56,7 +59,8 @@ impl Tileset {
             }
             tiles.push((filename.to_string(), sprites));
         }
-        Ok(Tileset { dirpath: dirpath.to_path_buf(), tiles })
+        let tile_size = Tileset::max_tile_size(&tiles);
+        Ok(Tileset { dirpath: dirpath.to_path_buf(), tiles, tile_size })
     }
 
     pub fn reload(
@@ -87,6 +91,7 @@ impl Tileset {
             }
         }
         self.tiles = new_tiles;
+        self.tile_size = Tileset::max_tile_size(&self.tiles);
         Ok(())
     }
 
@@ -100,6 +105,10 @@ impl Tileset {
 
     pub fn filenames(&self) -> Filenames {
         Filenames { tileset: self, index: 0 }
+    }
+
+    pub fn tile_size(&self) -> u32 {
+        self.tile_size
     }
 
     pub fn tiles(&self, file_index: usize) -> Tiles {
@@ -119,6 +128,20 @@ impl Tileset {
             index: tile_index,
             sprite: sprites[tile_index].clone(),
         })
+    }
+
+    pub fn max_tile_size(tiles: &Vec<(String, Vec<Rc<Sprite>>)>) -> u32 {
+        let mut max = 0;
+        for &(_, ref sprites) in tiles.iter() {
+            for sprite in sprites.iter() {
+                let size = sprite.width().max(sprite.height());
+                max = max.max(size);
+            }
+        }
+        if max == 0 {
+            max = DEFAULT_TILE_SIZE;
+        }
+        max
     }
 }
 
@@ -169,8 +192,6 @@ impl<'a> Iterator for Tiles<'a> {
 }
 
 //===========================================================================//
-
-pub const TILE_SIZE: u32 = 16;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -319,6 +340,10 @@ impl TileGrid {
             }
         }
         self.subgrid = new_subgrid;
+    }
+
+    pub fn tile_size(&self) -> u32 {
+        self.tileset.tile_size()
     }
 
     pub fn background_color(&self) -> (u8, u8, u8, u8) {

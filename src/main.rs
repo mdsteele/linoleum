@@ -144,7 +144,8 @@ fn main() {
         Box::new(TilePalette::new(10, 116, arrow_icons)),
         Box::new(GridCanvas::new(72, 34)),
         Box::new(UnsavedIndicator::new(10, 10, unsaved_icon)),
-        Box::new(CoordsIndicator::new(658, 378, font.clone())),
+        Box::new(CoordsIndicator::new(658, 34, font.clone(), false)),
+        Box::new(CoordsIndicator::new(658, 378, font.clone(), true)),
     ];
     let mut gui = AggregateElement::new(elements);
 

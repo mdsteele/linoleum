@@ -21,7 +21,6 @@ use super::canvas::{Canvas, Font};
 use super::element::{Action, GuiElement};
 use super::event::Event;
 use super::state::EditorState;
-use super::tilegrid::TILE_SIZE;
 use sdl2::rect::Point;
 use std::rc::Rc;
 
@@ -30,18 +29,28 @@ use std::rc::Rc;
 pub struct CoordsIndicator {
     topleft: Point,
     font: Rc<Font>,
+    by_pixel: bool,
 }
 
 impl CoordsIndicator {
-    pub fn new(left: i32, top: i32, font: Rc<Font>) -> CoordsIndicator {
-        CoordsIndicator { topleft: Point::new(left, top), font }
+    pub fn new(
+        left: i32,
+        top: i32,
+        font: Rc<Font>,
+        by_pixel: bool,
+    ) -> CoordsIndicator {
+        CoordsIndicator { topleft: Point::new(left, top), font, by_pixel }
     }
 }
 
 impl GuiElement<EditorState> for CoordsIndicator {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
+        let size = if self.by_pixel {
+            state.tilegrid().tile_size() as i32
+        } else {
+            1
+        };
         if let Some((subgrid, position)) = state.selection() {
-            let size = TILE_SIZE as i32;
             let left = position.x() * size;
             let top = position.y() * size;
             let right = left + subgrid.width() as i32 * size;
