@@ -21,23 +21,7 @@ use ahi;
 use std::fs::File;
 use std::io;
 
-// ========================================================================= //
-
-pub fn modulo(a: i32, b: i32) -> i32 {
-    if b == 0 {
-        panic!();
-    }
-    let remainder = a % b;
-    if remainder == 0 {
-        0
-    } else if (a < 0) ^ (b < 0) {
-        remainder + b
-    } else {
-        remainder
-    }
-}
-
-// ========================================================================= //
+//===========================================================================//
 
 pub fn load_ahf_from_file(path: &String) -> io::Result<ahi::Font> {
     let mut file = File::open(path)?;
@@ -46,7 +30,8 @@ pub fn load_ahf_from_file(path: &String) -> io::Result<ahi::Font> {
 
 pub fn load_ahi_from_file(path: &String) -> io::Result<Vec<ahi::Image>> {
     let mut file = File::open(path)?;
-    ahi::Image::read_all(&mut file)
+    let collection = ahi::Collection::read(&mut file)?;
+    Ok(collection.images)
 }
 
-// ========================================================================= //
+//===========================================================================//

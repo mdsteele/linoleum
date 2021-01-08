@@ -26,7 +26,7 @@ use sdl2::surface::Surface;
 use sdl2::video::Window as SdlWindow;
 use std::collections::BTreeMap;
 
-// ========================================================================= //
+//===========================================================================//
 
 pub struct Window<'a> {
     renderer: &'a mut SdlCanvas<SdlWindow>,
@@ -48,9 +48,17 @@ impl<'a> Window<'a> {
     }
 
     pub fn new_sprite(&self, image: &ahi::Image) -> Sprite {
+        self.new_sprite_with_palette(image, ahi::Palette::default())
+    }
+
+    pub fn new_sprite_with_palette(
+        &self,
+        image: &ahi::Image,
+        palette: &ahi::Palette,
+    ) -> Sprite {
         let width = image.width();
         let height = image.height();
-        let mut data = image.rgba_data();
+        let mut data = image.rgba_data(palette);
         let format = if cfg!(target_endian = "big") {
             PixelFormatEnum::RGBA8888
         } else {
@@ -90,7 +98,7 @@ impl<'a> Window<'a> {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 pub struct Canvas<'a> {
     clip_rect: Option<Rect>,
@@ -205,7 +213,7 @@ impl<'a> Drop for Canvas<'a> {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 pub struct Sprite {
     width: u32,
@@ -223,7 +231,7 @@ impl Sprite {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 struct Glyph {
     sprite: Sprite,
@@ -256,4 +264,4 @@ impl Font {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//

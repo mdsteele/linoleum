@@ -48,7 +48,7 @@ use self::unsaved::UnsavedIndicator;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-// ========================================================================= //
+//===========================================================================//
 
 const FRAME_DELAY_MILLIS: u32 = 100;
 
@@ -80,7 +80,7 @@ fn load_sprites(window: &Window, path: &str) -> Vec<Sprite> {
     images.iter().map(|image| window.new_sprite(image)).collect()
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -139,12 +139,12 @@ fn main() {
     };
 
     let elements: Vec<Box<dyn GuiElement<EditorState>>> = vec![
-        Box::new(ModalTextBox::new(10, 420, font.clone())),
-        Box::new(Toolbox::new(10, 10, tool_icons)),
-        Box::new(TilePalette::new(10, 92, arrow_icons)),
-        Box::new(GridCanvas::new(72, 10)),
-        Box::new(UnsavedIndicator::new(694, 10, unsaved_icon)),
-        Box::new(CoordsIndicator::new(658, 354, font.clone())),
+        Box::new(ModalTextBox::new(32, 8, font.clone())),
+        Box::new(Toolbox::new(10, 34, tool_icons)),
+        Box::new(TilePalette::new(10, 116, arrow_icons)),
+        Box::new(GridCanvas::new(72, 34)),
+        Box::new(UnsavedIndicator::new(10, 10, unsaved_icon)),
+        Box::new(CoordsIndicator::new(658, 378, font.clone())),
     ];
     let mut gui = AggregateElement::new(elements);
 
@@ -221,4 +221,4 @@ fn main() {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//

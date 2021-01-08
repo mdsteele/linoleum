@@ -19,6 +19,7 @@
 
 use super::canvas::{Sprite, Window};
 use super::util;
+use ahi::Palette;
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min, Ordering};
 use std::collections::{BTreeMap, BTreeSet};
@@ -28,7 +29,7 @@ use std::ops::{Index, IndexMut};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-// ========================================================================= //
+//===========================================================================//
 
 #[derive(Clone)]
 pub struct Tileset {
@@ -49,7 +50,8 @@ impl Tileset {
                 util::load_ahi_from_file(&path.to_str().unwrap().to_string())?;
             let mut sprites = vec![];
             for image in images {
-                let sprite = window.new_sprite(&image);
+                let sprite =
+                    window.new_sprite_with_palette(&image, Palette::default());
                 sprites.push(Rc::new(sprite));
             }
             tiles.push((filename.to_string(), sprites));
@@ -77,7 +79,8 @@ impl Tileset {
                 )?;
                 let mut sprites = vec![];
                 for image in images {
-                    let sprite = window.new_sprite(&image);
+                    let sprite = window
+                        .new_sprite_with_palette(&image, Palette::default());
                     sprites.push(Rc::new(sprite));
                 }
                 new_tiles.push((filename.to_string(), sprites));
@@ -165,7 +168,7 @@ impl<'a> Iterator for Tiles<'a> {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 pub const TILE_SIZE: u32 = 16;
 
@@ -202,7 +205,7 @@ impl Ord for Tile {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 #[derive(Clone)]
 pub struct SubGrid {
@@ -255,7 +258,7 @@ impl Index<(u32, u32)> for SubGrid {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 pub const GRID_NUM_COLS: u32 = 36;
 pub const GRID_NUM_ROWS: u32 = 24;
@@ -390,8 +393,8 @@ impl TileGrid {
                         }
                         spaces = 0;
                         let file_index = *map.get(&tile.filename).unwrap();
-                        let char1 = index_to_base62(file_index);
-                        let char2 = index_to_base62(tile.index);
+                        let char1 = index_to_base64(file_index);
+                        let char2 = index_to_base64(tile.index);
                         write!(writer, "{}{}", char1, char2)?;
                     }
                     None => {
@@ -451,8 +454,8 @@ impl TileGrid {
                 if byte1 == b' ' && byte2 == b' ' {
                     grid.push(None);
                 } else {
-                    let file_index = base62_to_index(byte1)?;
-                    let tile_index = base62_to_index(byte2)?;
+                    let file_index = base64_to_index(byte1)?;
+                    let tile_index = base64_to_index(byte2)?;
                     let opt_tile = tileset.get(file_index, tile_index);
                     let tile = opt_tile.ok_or_else(|| {
                         let msg = format!("invalid tile: {} {}", byte1, byte2);
@@ -480,19 +483,21 @@ impl TileGrid {
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
-fn index_to_base62(index: usize) -> char {
+fn index_to_base64(index: usize) -> char {
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
      'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b',
      'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
      'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
-     '4', '5', '6', '7', '8', '9'][index]
+     '4', '5', '6', '7', '8', '9', '+', '/'][index]
 }
 
-fn base62_to_index(byte: u8) -> io::Result<usize> {
+fn base64_to_index(byte: u8) -> io::Result<usize> {
     match byte {
         b'A'..=b'Z' => Ok((byte - b'A') as usize),
         b'a'..=b'z' => Ok((byte - b'a') as usize + 26),
         b'0'..=b'9' => Ok((byte - b'0') as usize + 52),
+        b'+' => Ok(62),
+        b'/' => Ok(63),
         _ => {
             let msg = format!("invalid index byte: {}", byte);
             Err(io::Error::new(io::ErrorKind::InvalidData, msg))
@@ -519,7 +524,7 @@ impl IndexMut<(u32, u32)> for TileGrid {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 fn read_byte<R: io::Read>(reader: R) -> io::Result<u8> {
     match reader.bytes().next() {
@@ -587,4 +592,21 @@ fn read_string<R: io::Read>(reader: R, terminator: u8) -> io::Result<String> {
     })
 }
 
-// ========================================================================= //
+//===========================================================================//
+
+#[cfg(test)]
+mod tests {
+    use super::{base64_to_index, index_to_base64};
+
+    #[test]
+    fn base64_round_trip() {
+        for index in 0..64 {
+            let ch = index_to_base64(index);
+            let i: u32 = ch.into();
+            assert!(i <= (u8::MAX as u32));
+            assert_eq!(Some(index), base64_to_index(i as u8).ok());
+        }
+    }
+}
+
+//===========================================================================//

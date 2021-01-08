@@ -23,7 +23,7 @@ use super::event::{Event, Keycode, NONE};
 use super::state::{EditorState, Tool};
 use sdl2::rect::{Point, Rect};
 
-// ========================================================================= //
+//===========================================================================//
 
 pub struct Toolbox {
     element: SubrectElement<AggregateElement<Tool>>,
@@ -31,19 +31,27 @@ pub struct Toolbox {
 
 impl Toolbox {
     pub fn new(left: i32, top: i32, mut icons: Vec<Sprite>) -> Toolbox {
-        icons.truncate(5);
-        assert_eq!(icons.len(), 5);
+        icons.truncate(6);
+        assert_eq!(icons.len(), 6);
         let swap_icon = icons.pop().unwrap();
+        let replace_icon = icons.pop().unwrap();
         let select_icon = icons.pop().unwrap();
         let eyedrop_icon = icons.pop().unwrap();
         let bucket_icon = icons.pop().unwrap();
         let pencil_icon = icons.pop().unwrap();
         let elements: Vec<Box<dyn GuiElement<Tool>>> = vec![
             Toolbox::picker(2, 2, Tool::Pencil, Keycode::P, pencil_icon),
-            Toolbox::picker(2, 24, Tool::PaintBucket, Keycode::K, bucket_icon),
-            Toolbox::picker(2, 46, Tool::PaletteSwap, Keycode::W, swap_icon),
-            Toolbox::picker(24, 2, Tool::Eyedropper, Keycode::Y, eyedrop_icon),
+            Toolbox::picker(24, 2, Tool::PaintBucket, Keycode::K, bucket_icon),
+            Toolbox::picker(2, 24, Tool::Eyedropper, Keycode::Y, eyedrop_icon),
             Toolbox::picker(24, 24, Tool::Select, Keycode::S, select_icon),
+            Toolbox::picker(
+                2,
+                46,
+                Tool::PaletteReplace,
+                Keycode::V,
+                replace_icon,
+            ),
+            Toolbox::picker(24, 46, Tool::PaletteSwap, Keycode::X, swap_icon),
         ];
         Toolbox {
             element: SubrectElement::new(
@@ -87,7 +95,7 @@ impl GuiElement<EditorState> for Toolbox {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 struct ToolPicker {
     tool: Tool,
@@ -129,4 +137,4 @@ impl GuiElement<Tool> for ToolPicker {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//

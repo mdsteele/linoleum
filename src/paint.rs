@@ -19,14 +19,13 @@
 
 use super::canvas::Canvas;
 use super::element::{Action, GuiElement, SubrectElement};
-use super::event::{Event, Keycode, COMMAND};
+use super::event::{Event, Keycode, COMMAND, SHIFT};
 use super::state::{EditorState, Tool};
 use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, TILE_SIZE};
-use super::util::modulo;
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min};
 
-// ========================================================================= //
+//===========================================================================//
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ViewSize {
@@ -78,7 +77,7 @@ impl GuiElement<EditorState> for GridCanvas {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 struct CanvasDrag {
     from_selection: Point,
@@ -206,7 +205,12 @@ impl InnerCanvas {
         true
     }
 
-    fn try_palette_swap(&self, mouse: Point, state: &mut EditorState) -> bool {
+    fn try_palette_replace(
+        &self,
+        mouse: Point,
+        state: &mut EditorState,
+        swap: bool,
+    ) -> bool {
         let start = match self.mouse_to_row_col(mouse) {
             Some(position) => position,
             None => return false,
@@ -222,10 +226,10 @@ impl InnerCanvas {
         for y in 0..GRID_NUM_ROWS {
             for x in 0..GRID_NUM_COLS {
                 let tile = tilegrid[(x, y)].clone();
-                if tile == to_tile {
-                    tilegrid[(x, y)] = from_tile.clone();
-                } else if tile == from_tile {
+                if tile == from_tile {
                     tilegrid[(x, y)] = to_tile.clone();
+                } else if swap && tile == to_tile {
+                    tilegrid[(x, y)] = from_tile.clone();
                 }
             }
         }
@@ -321,10 +325,9 @@ impl GuiElement<EditorState> for InnerCanvas {
         match event {
             &Event::ClockTick => {
                 if state.selection().is_some() {
-                    self.selection_animation_counter = modulo(
-                        self.selection_animation_counter + 1,
-                        MARQUEE_ANIMATION_MODULUS,
-                    );
+                    self.selection_animation_counter =
+                        (self.selection_animation_counter + 1)
+                            .rem_euclid(MARQUEE_ANIMATION_MODULUS);
                     Action::redraw().and_continue()
                 } else {
                     Action::ignore().and_continue()
@@ -346,7 +349,7 @@ impl GuiElement<EditorState> for InnerCanvas {
                     Action::ignore().and_continue()
                 }
             }
-            &Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND => {
+            &Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND | SHIFT => {
                 self.view_size = match self.view_size {
                     ViewSize::Small => ViewSize::Wide,
                     ViewSize::Wide => ViewSize::Tall,
@@ -364,8 +367,12 @@ impl GuiElement<EditorState> for InnerCanvas {
                     let changed = self.try_flood_fill(pt, state);
                     Action::redraw_if(changed).and_stop()
                 }
+                Tool::PaletteReplace => {
+                    let changed = self.try_palette_replace(pt, state, false);
+                    Action::redraw_if(changed).and_stop()
+                }
                 Tool::PaletteSwap => {
-                    let changed = self.try_palette_swap(pt, state);
+                    let changed = self.try_palette_replace(pt, state, true);
                     Action::redraw_if(changed).and_stop()
                 }
                 Tool::Pencil => {
@@ -456,7 +463,7 @@ impl GuiElement<EditorState> for InnerCanvas {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 const MARQUEE_ANIMATION_MODULUS: i32 = 8;
 
@@ -464,10 +471,10 @@ fn draw_marquee(canvas: &mut Canvas, rect: Rect, anim: i32) {
     canvas.draw_rect((255, 255, 255, 255), rect);
     let color = (0, 0, 0, 255);
     for x in 0..(rect.width() as i32) {
-        if modulo(x - anim, MARQUEE_ANIMATION_MODULUS) < 4 {
+        if (x - anim).rem_euclid(MARQUEE_ANIMATION_MODULUS) < 4 {
             canvas.draw_pixel(color, Point::new(rect.left() + x, rect.top()));
         }
-        if modulo(x + anim, MARQUEE_ANIMATION_MODULUS) < 4 {
+        if (x + anim).rem_euclid(MARQUEE_ANIMATION_MODULUS) < 4 {
             canvas.draw_pixel(
                 color,
                 Point::new(rect.left() + x, rect.bottom() - 1),
@@ -475,10 +482,10 @@ fn draw_marquee(canvas: &mut Canvas, rect: Rect, anim: i32) {
         }
     }
     for y in 0..(rect.height() as i32) {
-        if modulo(y + anim, MARQUEE_ANIMATION_MODULUS) >= 4 {
+        if (y + anim).rem_euclid(MARQUEE_ANIMATION_MODULUS) >= 4 {
             canvas.draw_pixel(color, Point::new(rect.left(), rect.top() + y));
         }
-        if modulo(y - anim, MARQUEE_ANIMATION_MODULUS) >= 4 {
+        if (y - anim).rem_euclid(MARQUEE_ANIMATION_MODULUS) >= 4 {
             canvas.draw_pixel(
                 color,
                 Point::new(rect.right() - 1, rect.top() + y),
@@ -487,4 +494,4 @@ fn draw_marquee(canvas: &mut Canvas, rect: Rect, anim: i32) {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//

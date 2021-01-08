@@ -22,12 +22,11 @@ use super::element::{Action, AggregateElement, GuiElement, SubrectElement};
 use super::event::{Event, Keycode, NONE};
 use super::state::{EditorState, Tool};
 use super::tilegrid::{Tile, Tileset};
-use super::util;
 use sdl2::rect::{Point, Rect};
 use std::cmp::max;
 use std::rc::Rc;
 
-// ========================================================================= //
+//===========================================================================//
 
 struct PaletteState {
     tileset: Rc<Tileset>,
@@ -35,7 +34,7 @@ struct PaletteState {
     brush: Option<Tile>,
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 pub struct TilePalette {
     element: SubrectElement<AggregateElement<PaletteState>>,
@@ -109,7 +108,7 @@ impl GuiElement<EditorState> for TilePalette {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 const SELECTED_COLOR: (u8, u8, u8, u8) = (255, 255, 255, 255);
 
@@ -167,7 +166,7 @@ impl GuiElement<PaletteState> for InnerPalette {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 struct EraserPicker {}
 
@@ -203,7 +202,7 @@ impl GuiElement<PaletteState> for EraserPicker {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 struct ArrowButton {
     icon: Sprite,
@@ -219,10 +218,9 @@ impl ArrowButton {
     fn increment(&self, state: &mut PaletteState) -> Action {
         let num_filenames = state.tileset.num_filenames();
         if num_filenames > 0 {
-            state.index = util::modulo(
-                state.index as i32 + self.delta,
-                num_filenames as i32,
-            ) as usize;
+            state.index = (state.index as i32 + self.delta)
+                .rem_euclid(num_filenames as i32)
+                as usize;
             Action::redraw().and_stop()
         } else {
             Action::ignore().and_continue()
@@ -250,7 +248,7 @@ impl GuiElement<PaletteState> for ArrowButton {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
 
 fn shrink(rect: Rect, by: i32) -> Rect {
     Rect::new(
@@ -261,4 +259,4 @@ fn shrink(rect: Rect, by: i32) -> Rect {
     )
 }
 
-// ========================================================================= //
+//===========================================================================//
