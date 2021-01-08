@@ -18,7 +18,7 @@
 // +--------------------------------------------------------------------------+
 
 use super::canvas::Window;
-use super::tilegrid::{SubGrid, Tile, TileGrid, GRID_NUM_COLS, GRID_NUM_ROWS};
+use super::tilegrid::{SubGrid, Tile, TileGrid};
 use sdl2::rect::{Point, Rect};
 use std::fs::File;
 use std::io;
@@ -42,13 +42,17 @@ pub enum Mode {
     Edit,
     LoadFile(String),
     SaveAs(String),
+    Resize(String),
     ChangeColor(String),
     ChangeTiles(String),
 }
 
 //===========================================================================//
 
+// These limits are currently arbitrary:
 const MAX_UNDOS: usize = 100;
+const MAX_GRID_WIDTH: u32 = 100;
+const MAX_GRID_HEIGHT: u32 = 100;
 
 #[derive(Clone)]
 struct Snapshot {
@@ -247,6 +251,20 @@ impl EditorState {
         }
     }
 
+    pub fn begin_resize_grid(&mut self) -> bool {
+        if self.mode == Mode::Edit {
+            self.unselect_if_necessary();
+            self.mode = Mode::Resize(format!(
+                "{}x{}",
+                self.tilegrid().width(),
+                self.tilegrid().height()
+            ));
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn begin_change_color(&mut self) -> bool {
         if self.mode == Mode::Edit {
             self.unselect_if_necessary();
@@ -335,6 +353,30 @@ impl EditorState {
                     }
                 }
             }
+            Mode::Resize(text) => {
+                let pieces: Vec<&str> = text.split('x').collect();
+                if pieces.len() != 2 {
+                    return false;
+                }
+                let new_width = match pieces[0].parse::<u32>() {
+                    Ok(width) => width,
+                    Err(_) => return false,
+                };
+                let new_height = match pieces[1].parse::<u32>() {
+                    Ok(height) => height,
+                    Err(_) => return false,
+                };
+                if new_width == 0
+                    || new_height == 0
+                    || new_width > MAX_GRID_WIDTH
+                    || new_height > MAX_GRID_HEIGHT
+                {
+                    return false;
+                }
+                self.mutation().resize_grid(new_width, new_height);
+                self.mode = Mode::Edit;
+                true
+            }
             Mode::ChangeColor(text) => {
                 let pieces: Vec<&str> = text.split(',').collect();
                 if pieces.len() != 3 {
@@ -384,6 +426,10 @@ impl<'a> Mutation<'a> {
         Rc::make_mut(&mut self.state.current.tilegrid)
     }
 
+    pub fn resize_grid(&mut self, width: u32, height: u32) {
+        self.tilegrid().resize(width, height);
+    }
+
     pub fn set_background_color(&mut self, red: u8, green: u8, blue: u8) {
         self.tilegrid().set_background_color(red, green, blue);
     }
@@ -406,7 +452,8 @@ impl<'a> Mutation<'a> {
     }
 
     pub fn select_all(&mut self) {
-        self.select(Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS));
+        let (width, height) = self.tilegrid().size();
+        self.select(Rect::new(0, 0, width, height));
     }
 
     pub fn unselect(&mut self) {
@@ -419,7 +466,8 @@ impl<'a> Mutation<'a> {
         if let Some((ref mut subgrid, _)) = self.state.current.selection {
             Rc::make_mut(subgrid).flip_horz();
         } else {
-            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let (width, height) = self.tilegrid().size();
+            let rect = Rect::new(0, 0, width, height);
             let mut subgrid = self.tilegrid().cut_subgrid(rect);
             subgrid.flip_horz();
             self.tilegrid().paste_subgrid(&subgrid, Point::new(0, 0));
@@ -430,7 +478,8 @@ impl<'a> Mutation<'a> {
         if let Some((ref mut subgrid, _)) = self.state.current.selection {
             Rc::make_mut(subgrid).flip_vert();
         } else {
-            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let (width, height) = self.tilegrid().size();
+            let rect = Rect::new(0, 0, width, height);
             let mut subgrid = self.tilegrid().cut_subgrid(rect);
             subgrid.flip_vert();
             self.tilegrid().paste_subgrid(&subgrid, Point::new(0, 0));
@@ -445,7 +494,8 @@ impl<'a> Mutation<'a> {
         if self.state.current.selection.is_some() {
             self.state.clipboard = self.state.current.selection.take();
         } else {
-            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let (width, height) = self.tilegrid().size();
+            let rect = Rect::new(0, 0, width, height);
             let subgrid = self.tilegrid().cut_subgrid(rect);
             self.state.clipboard = Some((Rc::new(subgrid), Point::new(0, 0)));
         }
@@ -455,7 +505,8 @@ impl<'a> Mutation<'a> {
         if self.state.current.selection.is_some() {
             self.state.clipboard = self.state.current.selection.clone();
         } else {
-            let rect = Rect::new(0, 0, GRID_NUM_COLS, GRID_NUM_ROWS);
+            let (width, height) = self.tilegrid().size();
+            let rect = Rect::new(0, 0, width, height);
             let subgrid = self.state.tilegrid().copy_subgrid(rect);
             self.state.clipboard = Some((Rc::new(subgrid), Point::new(0, 0)));
         }

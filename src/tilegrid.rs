@@ -215,12 +215,20 @@ pub struct SubGrid {
 }
 
 impl SubGrid {
+    pub fn new(width: u32, height: u32) -> SubGrid {
+        SubGrid { width, height, grid: vec![None; (width * height) as usize] }
+    }
+
     pub fn width(&self) -> u32 {
         self.width
     }
 
     pub fn height(&self) -> u32 {
         self.height
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        (self.width, self.height)
     }
 
     pub fn flip_horz(&mut self) {
@@ -258,16 +266,25 @@ impl Index<(u32, u32)> for SubGrid {
     }
 }
 
+impl IndexMut<(u32, u32)> for SubGrid {
+    fn index_mut(&mut self, (col, row): (u32, u32)) -> &mut Option<Tile> {
+        if col >= self.width || row >= self.height {
+            panic!("index out of range");
+        }
+        &mut self.grid[(row * self.width + col) as usize]
+    }
+}
+
 //===========================================================================//
 
-pub const GRID_NUM_COLS: u32 = 36;
-pub const GRID_NUM_ROWS: u32 = 24;
+pub const GRID_DEFAULT_NUM_COLS: u32 = 36;
+pub const GRID_DEFAULT_NUM_ROWS: u32 = 24;
 
 #[derive(Clone)]
 pub struct TileGrid {
     background_color: (u8, u8, u8),
     tileset: Rc<Tileset>,
-    grid: Vec<Option<Tile>>,
+    subgrid: SubGrid,
 }
 
 impl TileGrid {
@@ -275,8 +292,33 @@ impl TileGrid {
         TileGrid {
             background_color: (15, 15, 15),
             tileset: Rc::new(tileset),
-            grid: vec![None; (GRID_NUM_ROWS * GRID_NUM_COLS) as usize],
+            subgrid: SubGrid::new(
+                GRID_DEFAULT_NUM_COLS,
+                GRID_DEFAULT_NUM_ROWS,
+            ),
         }
+    }
+
+    pub fn width(&self) -> u32 {
+        self.subgrid.width()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.subgrid.height()
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        self.subgrid.size()
+    }
+
+    pub fn resize(&mut self, new_width: u32, new_height: u32) {
+        let mut new_subgrid = SubGrid::new(new_width, new_height);
+        for row in 0..self.height().min(new_height) {
+            for col in 0..self.width().min(new_width) {
+                new_subgrid[(col, row)] = self.subgrid[(col, row)].take();
+            }
+        }
+        self.subgrid = new_subgrid;
     }
 
     pub fn background_color(&self) -> (u8, u8, u8, u8) {
@@ -300,7 +342,7 @@ impl TileGrid {
         Rc::make_mut(&mut self.tileset).reload(window, &filenames)?;
         let filenames_set: BTreeSet<String> =
             filenames.iter().cloned().map(str::to_string).collect();
-        for tile in self.grid.iter_mut() {
+        for tile in self.subgrid.grid.iter_mut() {
             let bad = match *tile {
                 Some(ref tile) => !filenames_set.contains(&tile.filename),
                 None => false,
@@ -315,9 +357,9 @@ impl TileGrid {
     pub fn copy_subgrid(&self, rect: Rect) -> SubGrid {
         let mut grid = Vec::new();
         let start_col = max(0, rect.left()) as u32;
-        let end_col = min(GRID_NUM_COLS as i32, rect.right()) as u32;
+        let end_col = min(self.width() as i32, rect.right()) as u32;
         let start_row = max(0, rect.top()) as u32;
-        let end_row = min(GRID_NUM_ROWS as i32, rect.bottom()) as u32;
+        let end_row = min(self.height() as i32, rect.bottom()) as u32;
         for row in start_row..end_row {
             for col in start_col..end_col {
                 grid.push(self[(col, row)].clone());
@@ -333,9 +375,9 @@ impl TileGrid {
     pub fn cut_subgrid(&mut self, rect: Rect) -> SubGrid {
         let mut grid = Vec::new();
         let start_col = max(0, rect.left()) as u32;
-        let end_col = min(GRID_NUM_COLS as i32, rect.right()) as u32;
+        let end_col = min(self.width() as i32, rect.right()) as u32;
         let start_row = max(0, rect.top()) as u32;
-        let end_row = min(GRID_NUM_ROWS as i32, rect.bottom()) as u32;
+        let end_row = min(self.height() as i32, rect.bottom()) as u32;
         for row in start_row..end_row {
             for col in start_col..end_col {
                 grid.push(self[(col, row)].clone());
@@ -352,14 +394,14 @@ impl TileGrid {
     pub fn paste_subgrid(&mut self, subgrid: &SubGrid, topleft: Point) {
         let src_start_row = min(max(0, -topleft.y()) as u32, subgrid.height);
         let src_start_col = min(max(0, -topleft.x()) as u32, subgrid.width);
-        let dest_start_row = min(max(0, topleft.y()) as u32, GRID_NUM_ROWS);
-        let dest_start_col = min(max(0, topleft.x()) as u32, GRID_NUM_COLS);
+        let dest_start_row = min(max(0, topleft.y()) as u32, self.height());
+        let dest_start_col = min(max(0, topleft.x()) as u32, self.width());
         let num_rows = min(
             subgrid.height - src_start_row,
-            GRID_NUM_ROWS - dest_start_row,
+            self.height() - dest_start_row,
         );
         let num_cols =
-            min(subgrid.width - src_start_col, GRID_NUM_COLS - dest_start_col);
+            min(subgrid.width - src_start_col, self.width() - dest_start_col);
         for row in 0..num_rows {
             for col in 0..num_cols {
                 let tile =
@@ -374,7 +416,14 @@ impl TileGrid {
 
     pub fn save<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         let (red, green, blue) = self.background_color;
-        write!(writer, "@BG {} {} {}\n", red, green, blue)?;
+        write!(writer, "@BG {} {} {}", red, green, blue)?;
+        if self.width() == GRID_DEFAULT_NUM_COLS
+            && self.height() == GRID_DEFAULT_NUM_ROWS
+        {
+            write!(writer, "\n")?;
+        } else {
+            write!(writer, " {}x{}\n", self.width(), self.height())?;
+        }
         for filename in self.tileset.filenames() {
             write!(writer, ">{}\n", filename)?;
         }
@@ -383,9 +432,9 @@ impl TileGrid {
         for (index, filename) in self.tileset.filenames().enumerate() {
             map.insert(filename.clone(), index);
         }
-        for row in 0..GRID_NUM_ROWS {
+        for row in 0..self.height() {
             let mut spaces = 0;
-            for col in 0..GRID_NUM_COLS {
+            for col in 0..self.width() {
                 match self[(col, row)] {
                     Some(ref tile) => {
                         for _ in 0..spaces {
@@ -413,9 +462,22 @@ impl TileGrid {
         mut reader: R,
     ) -> io::Result<TileGrid> {
         read_exactly(reader.by_ref(), b"@BG ")?;
-        let red = read_int(reader.by_ref(), b' ')? as u8;
-        let green = read_int(reader.by_ref(), b' ')? as u8;
-        let blue = read_int(reader.by_ref(), b'\n')? as u8;
+        let red = read_int_with(reader.by_ref(), b' ')?;
+        let green = read_int_with(reader.by_ref(), b' ')?;
+        let (blue, next) = read_int(reader.by_ref())?;
+        let (width, height) = if next == b'\n' {
+            (GRID_DEFAULT_NUM_COLS, GRID_DEFAULT_NUM_ROWS)
+        } else if next == b' ' {
+            let width = read_int_with(reader.by_ref(), b'x')?;
+            let height = read_int_with(reader.by_ref(), b'\n')?;
+            (width, height)
+        } else {
+            let msg = format!(
+                "unexpected char '{}' in header",
+                String::from_utf8_lossy(&[next])
+            );
+            return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
+        };
         let mut filenames = Vec::new();
         loop {
             match read_byte(reader.by_ref())? {
@@ -434,17 +496,17 @@ impl TileGrid {
         }
         let tileset = Tileset::load(window, dirpath, &filenames)?;
         let mut grid = Vec::new();
-        for _ in 0..GRID_NUM_ROWS {
+        for _ in 0..height {
             let mut col = 0;
             loop {
                 let byte1 = read_byte(reader.by_ref())?;
                 if byte1 == b'\n' {
-                    for _ in col..GRID_NUM_COLS {
+                    for _ in col..width {
                         grid.push(None);
                     }
                     break;
                 }
-                if col >= GRID_NUM_COLS {
+                if col >= width {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         "too many columns",
@@ -467,9 +529,9 @@ impl TileGrid {
             }
         }
         Ok(TileGrid {
-            background_color: (red, green, blue),
+            background_color: (red as u8, green as u8, blue as u8),
             tileset: Rc::new(tileset),
-            grid,
+            subgrid: SubGrid { width, height, grid },
         })
     }
 
@@ -508,19 +570,13 @@ fn base64_to_index(byte: u8) -> io::Result<usize> {
 impl Index<(u32, u32)> for TileGrid {
     type Output = Option<Tile>;
     fn index(&self, (col, row): (u32, u32)) -> &Option<Tile> {
-        if col >= GRID_NUM_COLS || row >= GRID_NUM_ROWS {
-            panic!("index out of range");
-        }
-        &self.grid[(row * GRID_NUM_COLS + col) as usize]
+        &self.subgrid[(col, row)]
     }
 }
 
 impl IndexMut<(u32, u32)> for TileGrid {
     fn index_mut(&mut self, (col, row): (u32, u32)) -> &mut Option<Tile> {
-        if col >= GRID_NUM_COLS || row >= GRID_NUM_ROWS {
-            panic!("index out of range");
-        }
-        &mut self.grid[(row * GRID_NUM_COLS + col) as usize]
+        &mut self.subgrid[(col, row)]
     }
 }
 
@@ -551,30 +607,36 @@ fn read_exactly<R: io::Read>(mut reader: R, string: &[u8]) -> io::Result<()> {
     }
 }
 
-fn read_int<R: io::Read>(reader: R, terminator: u8) -> io::Result<u32> {
+fn read_int_with<R: io::Read>(reader: R, terminator: u8) -> io::Result<u32> {
+    let (value, next) = read_int(reader)?;
+    if next != terminator {
+        let msg = format!(
+            "expected '{}' in header but found '{}'",
+            String::from_utf8_lossy(&[terminator]),
+            String::from_utf8_lossy(&[next])
+        );
+        return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
+    }
+    Ok(value)
+}
+
+fn read_int<R: io::Read>(reader: R) -> io::Result<(u32, u8)> {
     let mut value: u32 = 0;
     for next in reader.bytes() {
         let byte = next?;
-        if byte == terminator {
-            break;
-        }
         let digit: u8;
         if b'0' <= byte && byte <= b'9' {
             digit = byte - b'0';
         } else {
-            let msg = format!(
-                "invalid character in header field: '{}'",
-                String::from_utf8_lossy(&[byte])
-            );
-            return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
+            return Ok((value, byte));
         }
         value = value * 10 + digit as u32;
-        if value > 0xFFFF {
+        if value > 0xFF {
             let msg = "value is too large";
             return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
         }
     }
-    Ok(value)
+    Ok((value, 0))
 }
 
 fn read_string<R: io::Read>(reader: R, terminator: u8) -> io::Result<String> {

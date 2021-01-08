@@ -185,6 +185,9 @@ fn main() {
             Event::KeyDown(Keycode::O, kmod) if kmod == COMMAND => {
                 Action::redraw_if(state.begin_load_file()).and_stop()
             }
+            Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND => {
+                Action::redraw_if(state.begin_resize_grid()).and_stop()
+            }
             Event::KeyDown(Keycode::S, kmod) if kmod == COMMAND => {
                 state.save_to_file().unwrap();
                 Action::redraw().and_stop()

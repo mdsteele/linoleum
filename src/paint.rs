@@ -21,7 +21,7 @@ use super::canvas::Canvas;
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{Event, Keycode, COMMAND, SHIFT};
 use super::state::{EditorState, Tool};
-use super::tilegrid::{GRID_NUM_COLS, GRID_NUM_ROWS, TILE_SIZE};
+use super::tilegrid::{TileGrid, TILE_SIZE};
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min};
 
@@ -44,12 +44,7 @@ impl GridCanvas {
         GridCanvas {
             element: SubrectElement::new(
                 InnerCanvas::new(),
-                Rect::new(
-                    left,
-                    top,
-                    GRID_NUM_COLS * TILE_SIZE,
-                    GRID_NUM_ROWS * TILE_SIZE,
-                ),
+                Rect::new(left, top, 36 * 16, 25 * 16),
             ),
         }
     }
@@ -100,15 +95,19 @@ impl InnerCanvas {
         }
     }
 
-    fn mouse_to_row_col(&self, mouse: Point) -> Option<(u32, u32)> {
+    fn mouse_to_row_col(
+        &self,
+        mouse: Point,
+        tilegrid: &TileGrid,
+    ) -> Option<(u32, u32)> {
         if mouse.x() < 0 || mouse.y() < 0 {
             return None;
         }
         let scaled = mouse / TILE_SIZE as i32;
         if scaled.x() < 0
-            || scaled.x() >= (GRID_NUM_COLS as i32)
+            || scaled.x() >= (tilegrid.width() as i32)
             || scaled.y() < 0
-            || scaled.y() >= (GRID_NUM_ROWS as i32)
+            || scaled.y() >= (tilegrid.height() as i32)
         {
             None
         } else {
@@ -116,27 +115,36 @@ impl InnerCanvas {
         }
     }
 
-    fn clamp_mouse_to_row_col(&self, mouse: Point) -> (u32, u32) {
+    fn clamp_mouse_to_row_col(
+        &self,
+        mouse: Point,
+        tilegrid: &TileGrid,
+    ) -> (u32, u32) {
         let scaled = mouse / TILE_SIZE as i32;
         (
-            max(0, min(scaled.x(), GRID_NUM_COLS as i32 - 1)) as u32,
-            max(0, min(scaled.y(), GRID_NUM_ROWS as i32 - 1)) as u32,
+            max(0, min(scaled.x(), tilegrid.width() as i32 - 1)) as u32,
+            max(0, min(scaled.y(), tilegrid.height() as i32 - 1)) as u32,
         )
     }
 
-    fn dragged_points(&self) -> Option<((u32, u32), (u32, u32))> {
+    fn dragged_points(
+        &self,
+        tilegrid: &TileGrid,
+    ) -> Option<((u32, u32), (u32, u32))> {
         if let Some(ref drag) = self.drag_from_to {
-            let from_point = self.clamp_mouse_to_row_col(drag.from_pixel);
-            let to_point = self.clamp_mouse_to_row_col(drag.to_pixel);
+            let from_point =
+                self.clamp_mouse_to_row_col(drag.from_pixel, tilegrid);
+            let to_point =
+                self.clamp_mouse_to_row_col(drag.to_pixel, tilegrid);
             Some((from_point, to_point))
         } else {
             None
         }
     }
 
-    fn dragged_rect(&self) -> Option<Rect> {
+    fn dragged_rect(&self, tilegrid: &TileGrid) -> Option<Rect> {
         if let Some(((from_col, from_row), (to_col, to_row))) =
-            self.dragged_points()
+            self.dragged_points(tilegrid)
         {
             let x = min(from_col, to_col) as i32;
             let y = min(from_row, to_row) as i32;
@@ -149,7 +157,8 @@ impl InnerCanvas {
     }
 
     fn try_paint(&self, mouse: Point, state: &mut EditorState) -> bool {
-        if let Some(position) = self.mouse_to_row_col(mouse) {
+        if let Some(position) = self.mouse_to_row_col(mouse, state.tilegrid())
+        {
             let brush = state.brush().clone();
             state.persistent_mutation().tilegrid()[position] = brush;
             true
@@ -159,7 +168,8 @@ impl InnerCanvas {
     }
 
     fn try_eyedrop(&self, mouse: Point, state: &mut EditorState) -> bool {
-        if let Some(position) = self.mouse_to_row_col(mouse) {
+        if let Some(position) = self.mouse_to_row_col(mouse, state.tilegrid())
+        {
             state.eyedrop(position);
             true
         } else {
@@ -168,7 +178,7 @@ impl InnerCanvas {
     }
 
     fn try_flood_fill(&self, mouse: Point, state: &mut EditorState) -> bool {
-        let start = match self.mouse_to_row_col(mouse) {
+        let start = match self.mouse_to_row_col(mouse, state.tilegrid()) {
             Some(position) => position,
             None => return false,
         };
@@ -186,13 +196,13 @@ impl InnerCanvas {
             if col > 0 {
                 next.push((col - 1, row));
             }
-            if col < GRID_NUM_COLS - 1 {
+            if col < tilegrid.width() - 1 {
                 next.push((col + 1, row));
             }
             if row > 0 {
                 next.push((col, row - 1));
             }
-            if row < GRID_NUM_ROWS - 1 {
+            if row < tilegrid.height() - 1 {
                 next.push((col, row + 1));
             }
             for coords in next {
@@ -211,7 +221,7 @@ impl InnerCanvas {
         state: &mut EditorState,
         swap: bool,
     ) -> bool {
-        let start = match self.mouse_to_row_col(mouse) {
+        let start = match self.mouse_to_row_col(mouse, state.tilegrid()) {
             Some(position) => position,
             None => return false,
         };
@@ -223,8 +233,8 @@ impl InnerCanvas {
         state.set_brush(from_tile.clone());
         let mut mutation = state.mutation();
         let tilegrid = mutation.tilegrid();
-        for y in 0..GRID_NUM_ROWS {
-            for x in 0..GRID_NUM_COLS {
+        for y in 0..tilegrid.height() {
+            for x in 0..tilegrid.width() {
                 let tile = tilegrid[(x, y)].clone();
                 if tile == from_tile {
                     tilegrid[(x, y)] = to_tile.clone();
@@ -244,15 +254,15 @@ impl GuiElement<EditorState> for InnerCanvas {
         let vert_margin = 2;
         let row_range = match self.view_size {
             ViewSize::Small | ViewSize::Wide => {
-                vert_margin..(GRID_NUM_ROWS - vert_margin)
+                vert_margin..(tilegrid.height() - vert_margin)
             }
-            ViewSize::Tall | ViewSize::Full => 0..GRID_NUM_ROWS,
+            ViewSize::Tall | ViewSize::Full => 0..tilegrid.height(),
         };
         let col_range = match self.view_size {
             ViewSize::Small | ViewSize::Tall => {
-                horz_margin..(GRID_NUM_COLS - horz_margin)
+                horz_margin..(tilegrid.width() - horz_margin)
             }
-            ViewSize::Wide | ViewSize::Full => 0..GRID_NUM_COLS,
+            ViewSize::Wide | ViewSize::Full => 0..tilegrid.width(),
         };
         canvas.fill_rect(
             tilegrid.background_color(),
@@ -280,8 +290,8 @@ impl GuiElement<EditorState> for InnerCanvas {
             let rect = Rect::new(
                 (horz_margin * TILE_SIZE) as i32,
                 (vert_margin * TILE_SIZE) as i32,
-                (GRID_NUM_COLS - 2 * horz_margin) * TILE_SIZE,
-                (GRID_NUM_ROWS - 2 * vert_margin) * TILE_SIZE,
+                (tilegrid.width() - 2 * horz_margin) * TILE_SIZE,
+                (tilegrid.height() - 2 * vert_margin) * TILE_SIZE,
             );
             canvas.draw_rect((63, 63, 63, 255), rect);
         }
@@ -306,7 +316,7 @@ impl GuiElement<EditorState> for InnerCanvas {
                 marquee_rect,
                 self.selection_animation_counter,
             );
-        } else if let Some(rect) = self.dragged_rect() {
+        } else if let Some(rect) = self.dragged_rect(tilegrid) {
             let marquee_rect = Rect::new(
                 rect.x() * (TILE_SIZE as i32),
                 rect.y() * (TILE_SIZE as i32),
@@ -423,7 +433,9 @@ impl GuiElement<EditorState> for InnerCanvas {
                 match state.tool() {
                     Tool::Select => {
                         if state.selection().is_none() {
-                            if let Some(rect) = self.dragged_rect() {
+                            if let Some(rect) =
+                                self.dragged_rect(state.tilegrid())
+                            {
                                 state.mutation().select(rect);
                                 self.drag_from_to = None;
                                 self.selection_animation_counter = 0;
