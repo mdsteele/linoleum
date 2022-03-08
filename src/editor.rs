@@ -17,15 +17,15 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use crate::canvas::{Font, Sprite, Window};
 use crate::canvas::Canvas;
+use crate::canvas::{Font, Sprite, Window};
+use crate::coords::CoordsIndicator;
 use crate::element::{Action, AggregateElement, GuiElement};
 use crate::event::{Event, Keycode, COMMAND, SHIFT};
 use crate::paint::GridCanvas;
 use crate::palette::TilePalette;
 use crate::state::EditorState;
-use crate::textbox::{Mode, ModalTextBox};
-use crate::coords::CoordsIndicator;
+use crate::textbox::{ModalTextBox, Mode};
 use crate::tilegrid::TileGrid;
 use crate::toolbox::Toolbox;
 use crate::unsaved::UnsavedIndicator;
@@ -79,8 +79,7 @@ impl EditorView {
     fn begin_save_as(&mut self, state: &mut EditorState) -> bool {
         if self.textbox.mode() == Mode::Edit {
             state.unselect_if_necessary();
-            self.textbox
-                .set_mode(Mode::SaveAs, state.filepath().to_string());
+            self.textbox.set_mode(Mode::SaveAs, state.filepath().to_string());
             true
         } else {
             false
@@ -90,11 +89,14 @@ impl EditorView {
     fn begin_resize_grid(&mut self, state: &mut EditorState) -> bool {
         if self.textbox.mode() == Mode::Edit {
             state.unselect_if_necessary();
-            self.textbox.set_mode(Mode::Resize, format!(
-                "{}x{}",
-                state.tilegrid().width(),
-                state.tilegrid().height()
-            ));
+            self.textbox.set_mode(
+                Mode::Resize,
+                format!(
+                    "{}x{}",
+                    state.tilegrid().width(),
+                    state.tilegrid().height()
+                ),
+            );
             true
         } else {
             false
@@ -105,7 +107,8 @@ impl EditorView {
         if self.textbox.mode() == Mode::Edit {
             state.unselect_if_necessary();
             let (r, g, b, _) = state.tilegrid().background_color();
-            self.textbox.set_mode(Mode::ChangeColor, format!("{},{},{}", r, g, b));
+            self.textbox
+                .set_mode(Mode::ChangeColor, format!("{},{},{}", r, g, b));
             true
         } else {
             false
@@ -230,11 +233,7 @@ impl EditorView {
 }
 
 impl GuiElement<EditorState, (Mode, String)> for EditorView {
-    fn draw(
-        &self,
-        state: &EditorState,
-        canvas: &mut Canvas,
-    ) {
+    fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         let rect = canvas.rect();
         canvas.draw_rect((127, 127, 127, 127), rect);
         self.aggregate.draw(state, canvas);

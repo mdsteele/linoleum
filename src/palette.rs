@@ -161,7 +161,7 @@ impl GuiElement<PaletteState, ()> for InnerPalette {
                     Action::ignore()
                 }
             }
-            _ => Action::ignore()
+            _ => Action::ignore(),
         }
     }
 }

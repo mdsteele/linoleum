@@ -23,6 +23,9 @@ use super::event::{Event, Keycode};
 use super::state::EditorState;
 use sdl2::rect::{Point, Rect};
 use std::cmp;
+use std::ffi::OsStr;
+use std::io;
+use std::path::Path;
 use std::rc::Rc;
 
 //===========================================================================//
@@ -42,6 +45,15 @@ pub enum Mode {
     Resize,
     ChangeColor,
     ChangeTiles,
+}
+
+impl Mode {
+    fn is_file_picker(self) -> bool {
+        match self {
+            Mode::LoadFile | Mode::SaveAs => true,
+            _ => false,
+        }
+    }
 }
 
 //===========================================================================//
@@ -79,8 +91,8 @@ impl GuiElement<(), ()> for TextBox {
         render_string(canvas, &self.font, text_left, 4, &self.text);
         canvas.draw_rect((255, 255, 255, 255), rect);
         if self.cursor_blink < CURSOR_ON_FRAMES {
-            let cursor_x =
-                text_left + self.font.text_width(&self.text[..self.byte_index]);
+            let cursor_x = text_left
+                + self.font.text_width(&self.text[..self.byte_index]);
             let cursor_rect =
                 Rect::new(cursor_x, rect.y() + 3, 1, rect.height() - 6);
             canvas.fill_rect((255, 255, 0, 255), cursor_rect);
@@ -166,12 +178,64 @@ impl GuiElement<(), ()> for TextBox {
 
 //===========================================================================//
 
+struct MatchesPanel {
+    left: i32,
+    top: i32,
+    font: Rc<Font>,
+    matches: Vec<String>,
+}
+
+impl MatchesPanel {
+    fn new(left: i32, top: i32, font: Rc<Font>) -> MatchesPanel {
+        MatchesPanel { left, top, font, matches: Vec::new() }
+    }
+
+    fn set_matches(&mut self, matches: Vec<String>) {
+        self.matches = matches;
+    }
+
+    fn clear_matches(&mut self) {
+        self.matches.clear();
+    }
+}
+
+impl GuiElement<(), ()> for MatchesPanel {
+    fn draw(&self, _: &(), canvas: &mut Canvas) {
+        if !self.matches.is_empty() {
+            let rect = Rect::new(
+                self.left,
+                self.top,
+                360,
+                4 + 14 * (self.matches.len() as u32),
+            );
+            canvas.fill_rect((128, 128, 128, 255), rect);
+            canvas.draw_rect((255, 255, 255, 255), rect);
+            for (row, string) in self.matches.iter().enumerate() {
+                render_string(
+                    canvas,
+                    &self.font,
+                    self.left + 4,
+                    self.top + 4 + 14 * (row as i32),
+                    string,
+                );
+            }
+        }
+    }
+
+    fn on_event(&mut self, _: &Event, _: &mut ()) -> Action<()> {
+        Action::ignore()
+    }
+}
+
+//===========================================================================//
+
 pub struct ModalTextBox {
     left: i32,
     top: i32,
     font: Rc<Font>,
     mode: Mode,
     textbox: SubrectElement<TextBox>,
+    matches_panel: MatchesPanel,
 }
 
 impl ModalTextBox {
@@ -182,13 +246,18 @@ impl ModalTextBox {
             font: font.clone(),
             mode: Mode::Edit,
             textbox: SubrectElement::new(
-                TextBox::new(font),
+                TextBox::new(font.clone()),
                 Rect::new(
                     left + LABEL_WIDTH,
                     top,
                     (676 - LABEL_WIDTH) as u32,
                     18,
                 ),
+            ),
+            matches_panel: MatchesPanel::new(
+                left + LABEL_WIDTH,
+                top + 20,
+                font.clone(),
             ),
         }
     }
@@ -200,11 +269,28 @@ impl ModalTextBox {
     pub fn set_mode(&mut self, mode: Mode, text: String) {
         self.mode = mode;
         self.textbox.inner_mut().set_text(text);
+        self.matches_panel.clear_matches();
     }
 
     pub fn clear_mode(&mut self) {
         self.mode = Mode::Edit;
         self.textbox.inner_mut().set_text(String::new());
+        self.matches_panel.clear_matches();
+    }
+
+    fn tab_complete(&mut self) -> bool {
+        match tab_complete_path(self.textbox.inner().text()) {
+            Ok((path, matches)) => {
+                self.textbox.inner_mut().set_text(path);
+                if matches.len() > 1 {
+                    self.matches_panel.set_matches(matches);
+                } else {
+                    self.matches_panel.clear_matches();
+                }
+                true
+            }
+            Err(_) => false,
+        }
     }
 }
 
@@ -220,6 +306,9 @@ impl GuiElement<EditorState, (Mode, String)> for ModalTextBox {
             );
         } else {
             self.textbox.draw(&(), canvas);
+            if self.mode.is_file_picker() {
+                self.matches_panel.draw(&(), canvas);
+            }
         }
         let label = match self.mode {
             Mode::Edit => "Path:",
@@ -256,6 +345,10 @@ impl GuiElement<EditorState, (Mode, String)> for ModalTextBox {
                 let text = self.textbox.inner().text().to_string();
                 Action::redraw().and_return((self.mode, text))
             }
+            &Event::KeyDown(Keycode::Tab, _) => {
+                let redraw = self.mode.is_file_picker() && self.tab_complete();
+                Action::redraw_if(redraw).and_stop()
+            }
             _ => Action::ignore(),
         };
         if !action.should_stop() {
@@ -279,6 +372,53 @@ fn render_string(
     string: &str,
 ) {
     canvas.draw_text(font, Point::new(left, top + font.baseline()), string);
+}
+
+fn tab_complete_path(path_string: &str) -> io::Result<(String, Vec<String>)> {
+    let path = Path::new(path_string);
+    let (dir, prefix): (&Path, &str) = if path_string.ends_with('/') {
+        (path, "")
+    } else {
+        (
+            path.parent()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, ""))?,
+            path.file_name().map(OsStr::to_str).unwrap_or(None).unwrap_or(""),
+        )
+    };
+
+    let mut file_names = Vec::<String>::new();
+    for entry_result in dir.read_dir()? {
+        let entry = entry_result?;
+        let file_name = entry.file_name().to_str().unwrap_or("").to_string();
+        if file_name.starts_with(prefix) {
+            file_names.push(file_name);
+        }
+    }
+
+    if let Some(first) = file_names.first() {
+        let mut completed = String::new();
+        for chr in first.chars() {
+            let mut candidate = completed.clone();
+            candidate.push(chr);
+            if !file_names.iter().all(|name| name.starts_with(&candidate)) {
+                break;
+            }
+            completed = candidate;
+        }
+        let mut completed_path = dir.join(completed);
+        if completed_path.is_dir() {
+            completed_path.push("");
+        }
+        Ok((
+            completed_path
+                .into_os_string()
+                .into_string()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))?,
+            file_names,
+        ))
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, ""))
+    }
 }
 
 //===========================================================================//
