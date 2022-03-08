@@ -36,15 +36,15 @@ impl UnsavedIndicator {
     }
 }
 
-impl GuiElement<EditorState> for UnsavedIndicator {
+impl GuiElement<EditorState, ()> for UnsavedIndicator {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         if state.is_unsaved() {
             canvas.draw_sprite(&self.icon, self.topleft);
         }
     }
 
-    fn handle_event(&mut self, _: &Event, _: &mut EditorState) -> Action {
-        Action::ignore().and_continue()
+    fn on_event(&mut self, _: &Event, _: &mut EditorState) -> Action<()> {
+        Action::ignore()
     }
 }
 

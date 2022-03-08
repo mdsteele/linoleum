@@ -51,7 +51,7 @@ impl GridCanvas {
     }
 }
 
-impl GuiElement<EditorState> for GridCanvas {
+impl GuiElement<EditorState, ()> for GridCanvas {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         self.element.draw(state, canvas);
         let rect = self.element.rect();
@@ -64,12 +64,12 @@ impl GuiElement<EditorState> for GridCanvas {
         canvas.draw_rect((191, 191, 191, 255), expanded);
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut EditorState,
-    ) -> Action {
-        self.element.handle_event(event, state)
+    ) -> Action<()> {
+        self.element.on_event(event, state)
     }
 }
 
@@ -248,7 +248,7 @@ impl InnerCanvas {
     }
 }
 
-impl GuiElement<EditorState> for InnerCanvas {
+impl GuiElement<EditorState, ()> for InnerCanvas {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         let tilegrid = state.tilegrid();
         let horz_margin = 3;
@@ -333,20 +333,20 @@ impl GuiElement<EditorState> for InnerCanvas {
         }
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut EditorState,
-    ) -> Action {
+    ) -> Action<()> {
         match event {
             &Event::ClockTick => {
                 if state.selection().is_some() {
                     self.selection_animation_counter =
                         (self.selection_animation_counter + 1)
                             .rem_euclid(MARQUEE_ANIMATION_MODULUS);
-                    Action::redraw().and_continue()
+                    Action::redraw()
                 } else {
-                    Action::ignore().and_continue()
+                    Action::ignore()
                 }
             }
             &Event::KeyDown(Keycode::Backspace, _) => {
@@ -354,7 +354,7 @@ impl GuiElement<EditorState> for InnerCanvas {
                     state.mutation().delete_selection();
                     Action::redraw().and_stop()
                 } else {
-                    Action::ignore().and_continue()
+                    Action::ignore()
                 }
             }
             &Event::KeyDown(Keycode::Escape, _) => {
@@ -362,7 +362,7 @@ impl GuiElement<EditorState> for InnerCanvas {
                     state.mutation().unselect();
                     Action::redraw().and_stop()
                 } else {
-                    Action::ignore().and_continue()
+                    Action::ignore()
                 }
             }
             &Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND | SHIFT => {
@@ -447,19 +447,19 @@ impl GuiElement<EditorState> for InnerCanvas {
                                 state.mutation().select(rect);
                                 self.drag_from_to = None;
                                 self.selection_animation_counter = 0;
-                                return Action::redraw().and_continue();
+                                return Action::redraw();
                             }
                         }
                     }
                     _ => {}
                 }
                 self.drag_from_to = None;
-                Action::ignore().and_continue()
+                Action::ignore()
             }
             &Event::MouseDrag(pt) => match state.tool() {
                 Tool::Pencil => {
                     let changed = self.try_paint(pt, state);
-                    Action::redraw_if(changed).and_continue()
+                    Action::redraw_if(changed)
                 }
                 Tool::Select => {
                     if let Some(ref mut drag) = self.drag_from_to {
@@ -472,14 +472,14 @@ impl GuiElement<EditorState> for InnerCanvas {
                                 .persistent_mutation()
                                 .reposition_selection(position);
                         }
-                        Action::redraw().and_continue()
+                        Action::redraw()
                     } else {
-                        Action::ignore().and_continue()
+                        Action::ignore()
                     }
                 }
-                _ => Action::ignore().and_continue(),
+                _ => Action::ignore(),
             },
-            _ => Action::ignore().and_continue(),
+            _ => Action::ignore(),
         }
     }
 }

@@ -26,7 +26,7 @@ use sdl2::rect::{Point, Rect};
 //===========================================================================//
 
 pub struct Toolbox {
-    element: SubrectElement<AggregateElement<Tool>>,
+    element: SubrectElement<AggregateElement<Tool, ()>>,
 }
 
 impl Toolbox {
@@ -39,7 +39,7 @@ impl Toolbox {
         let eyedrop_icon = icons.pop().unwrap();
         let bucket_icon = icons.pop().unwrap();
         let pencil_icon = icons.pop().unwrap();
-        let elements: Vec<Box<dyn GuiElement<Tool>>> = vec![
+        let elements: Vec<Box<dyn GuiElement<Tool, ()>>> = vec![
             Toolbox::picker(2, 2, Tool::Pencil, Keycode::P, pencil_icon),
             Toolbox::picker(24, 2, Tool::PaintBucket, Keycode::K, bucket_icon),
             Toolbox::picker(2, 24, Tool::Eyedropper, Keycode::Y, eyedrop_icon),
@@ -67,7 +67,7 @@ impl Toolbox {
         tool: Tool,
         key: Keycode,
         icon: Sprite,
-    ) -> Box<dyn GuiElement<Tool>> {
+    ) -> Box<dyn GuiElement<Tool, ()>> {
         Box::new(SubrectElement::new(
             ToolPicker::new(tool, key, icon),
             Rect::new(x, y, 20, 20),
@@ -75,19 +75,19 @@ impl Toolbox {
     }
 }
 
-impl GuiElement<EditorState> for Toolbox {
+impl GuiElement<EditorState, ()> for Toolbox {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         canvas.fill_rect((95, 95, 95, 255), self.element.rect());
         self.element.draw(&state.tool(), canvas);
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut EditorState,
-    ) -> Action {
+    ) -> Action<()> {
         let mut new_tool = state.tool();
-        let action = self.element.handle_event(event, &mut new_tool);
+        let action = self.element.on_event(event, &mut new_tool);
         if new_tool != state.tool() {
             state.set_tool(new_tool);
         }
@@ -109,7 +109,7 @@ impl ToolPicker {
     }
 }
 
-impl GuiElement<Tool> for ToolPicker {
+impl GuiElement<Tool, ()> for ToolPicker {
     fn draw(&self, tool: &Tool, canvas: &mut Canvas) {
         if *tool == self.tool {
             canvas.clear((255, 255, 255, 255));
@@ -119,7 +119,7 @@ impl GuiElement<Tool> for ToolPicker {
         canvas.draw_sprite(&self.icon, Point::new(2, 2));
     }
 
-    fn handle_event(&mut self, event: &Event, tool: &mut Tool) -> Action {
+    fn on_event(&mut self, event: &Event, tool: &mut Tool) -> Action<()> {
         match event {
             &Event::MouseDown(_) => {
                 *tool = self.tool;
@@ -133,7 +133,7 @@ impl GuiElement<Tool> for ToolPicker {
             }
             _ => {}
         }
-        Action::ignore().and_continue()
+        Action::ignore()
     }
 }
 

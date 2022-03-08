@@ -37,7 +37,7 @@ struct PaletteState {
 //===========================================================================//
 
 pub struct TilePalette {
-    element: SubrectElement<AggregateElement<PaletteState>>,
+    element: SubrectElement<AggregateElement<PaletteState, ()>>,
     tileset_index: usize,
 }
 
@@ -47,7 +47,7 @@ impl TilePalette {
         assert_eq!(icons.len(), 2);
         let right_arrow = icons.pop().unwrap();
         let left_arrow = icons.pop().unwrap();
-        let elements: Vec<Box<dyn GuiElement<PaletteState>>> = vec![
+        let elements: Vec<Box<dyn GuiElement<PaletteState, ()>>> = vec![
             Box::new(SubrectElement::new(
                 EraserPicker::new(),
                 Rect::new(2, 2, 42, 20),
@@ -75,7 +75,7 @@ impl TilePalette {
     }
 }
 
-impl GuiElement<EditorState> for TilePalette {
+impl GuiElement<EditorState, ()> for TilePalette {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         canvas.fill_rect((95, 95, 95, 255), self.element.rect());
         let palette_state = PaletteState {
@@ -86,17 +86,17 @@ impl GuiElement<EditorState> for TilePalette {
         self.element.draw(&palette_state, canvas);
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut EditorState,
-    ) -> Action {
+    ) -> Action<()> {
         let mut palette_state = PaletteState {
             tileset: state.tilegrid().tileset(),
             index: self.tileset_index,
             brush: state.brush().clone(),
         };
-        let action = self.element.handle_event(event, &mut palette_state);
+        let action = self.element.on_event(event, &mut palette_state);
         self.tileset_index = palette_state.index;
         if palette_state.brush != *state.brush() {
             state.set_brush(palette_state.brush);
@@ -120,7 +120,7 @@ impl InnerPalette {
     }
 }
 
-impl GuiElement<PaletteState> for InnerPalette {
+impl GuiElement<PaletteState, ()> for InnerPalette {
     fn draw(&self, state: &PaletteState, canvas: &mut Canvas) {
         for (index, tile) in state.tileset.tiles(state.index).enumerate() {
             let left = 4 + 22 * (index % 2) as i32;
@@ -135,11 +135,11 @@ impl GuiElement<PaletteState> for InnerPalette {
         }
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut PaletteState,
-    ) -> Action {
+    ) -> Action<()> {
         match event {
             &Event::MouseDown(pt) => {
                 let mut found = None;
@@ -158,10 +158,10 @@ impl GuiElement<PaletteState> for InnerPalette {
                     state.brush = brush;
                     Action::redraw().and_stop()
                 } else {
-                    Action::ignore().and_continue()
+                    Action::ignore()
                 }
             }
-            _ => Action::ignore().and_continue(),
+            _ => Action::ignore()
         }
     }
 }
@@ -176,7 +176,7 @@ impl EraserPicker {
     }
 }
 
-impl GuiElement<PaletteState> for EraserPicker {
+impl GuiElement<PaletteState, ()> for EraserPicker {
     fn draw(&self, state: &PaletteState, canvas: &mut Canvas) {
         let rect = canvas.rect();
         canvas.draw_rect((0, 0, 0, 255), shrink(rect, 2));
@@ -187,17 +187,17 @@ impl GuiElement<PaletteState> for EraserPicker {
         }
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut PaletteState,
-    ) -> Action {
+    ) -> Action<()> {
         match event {
             &Event::MouseDown(_) => {
                 state.brush = None;
                 Action::redraw().and_stop()
             }
-            _ => Action::ignore().and_continue(),
+            _ => Action::ignore(),
         }
     }
 }
@@ -215,7 +215,7 @@ impl ArrowButton {
         ArrowButton { icon, key, delta }
     }
 
-    fn increment(&self, state: &mut PaletteState) -> Action {
+    fn increment(&self, state: &mut PaletteState) -> Action<()> {
         let num_filenames = state.tileset.num_filenames();
         if num_filenames > 0 {
             state.index = (state.index as i32 + self.delta)
@@ -223,27 +223,27 @@ impl ArrowButton {
                 as usize;
             Action::redraw().and_stop()
         } else {
-            Action::ignore().and_continue()
+            Action::ignore()
         }
     }
 }
 
-impl GuiElement<PaletteState> for ArrowButton {
+impl GuiElement<PaletteState, ()> for ArrowButton {
     fn draw(&self, _: &PaletteState, canvas: &mut Canvas) {
         canvas.draw_sprite(&self.icon, Point::new(0, 0));
     }
 
-    fn handle_event(
+    fn on_event(
         &mut self,
         event: &Event,
         state: &mut PaletteState,
-    ) -> Action {
+    ) -> Action<()> {
         match event {
             &Event::MouseDown(_) => self.increment(state),
             &Event::KeyDown(key, kmod) if key == self.key && kmod == NONE => {
                 self.increment(state)
             }
-            _ => Action::ignore().and_continue(),
+            _ => Action::ignore(),
         }
     }
 }

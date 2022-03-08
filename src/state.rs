@@ -37,22 +37,10 @@ pub enum Tool {
     Select,
 }
 
-#[derive(Clone, Eq, PartialEq)]
-pub enum Mode {
-    Edit,
-    LoadFile(String),
-    SaveAs(String),
-    Resize(String),
-    ChangeColor(String),
-    ChangeTiles(String),
-}
-
 //===========================================================================//
 
-// These limits are currently arbitrary:
+// This limit is currently arbitrary:
 const MAX_UNDOS: usize = 100;
-const MAX_GRID_WIDTH: u32 = 100;
-const MAX_GRID_HEIGHT: u32 = 100;
 
 #[derive(Clone)]
 struct Snapshot {
@@ -64,7 +52,6 @@ struct Snapshot {
 //===========================================================================//
 
 pub struct EditorState {
-    mode: Mode,
     filepath: String,
     current: Snapshot,
     undo_stack: Vec<Snapshot>,
@@ -74,13 +61,11 @@ pub struct EditorState {
     prev_tool: Tool,
     brush: Option<Tile>,
     persistent_mutation_active: bool,
-    should_mode_perform: bool,
 }
 
 impl EditorState {
     pub fn new(filepath: String, tilegrid: TileGrid) -> EditorState {
         EditorState {
-            mode: Mode::Edit,
             filepath,
             current: Snapshot {
                 tilegrid: Rc::new(tilegrid),
@@ -94,20 +79,15 @@ impl EditorState {
             prev_tool: Tool::Pencil,
             brush: None,
             persistent_mutation_active: false,
-            should_mode_perform: false,
         }
-    }
-
-    pub fn mode(&self) -> &Mode {
-        &self.mode
-    }
-
-    pub fn mode_mut(&mut self) -> &mut Mode {
-        &mut self.mode
     }
 
     pub fn filepath(&self) -> &String {
         &self.filepath
+    }
+
+    pub fn swap_filepath(&mut self, path: String) -> String {
+        mem::replace(&mut self.filepath, path)
     }
 
     pub fn tilegrid(&self) -> &TileGrid {
@@ -156,7 +136,7 @@ impl EditorState {
         }
     }
 
-    fn unselect_if_necessary(&mut self) {
+    pub fn unselect_if_necessary(&mut self) {
         self.reset_persistent_mutation();
         if self.selection().is_some() {
             self.mutation().unselect();
@@ -231,187 +211,14 @@ impl EditorState {
         Ok(())
     }
 
-    pub fn begin_load_file(&mut self) -> bool {
-        if self.mode == Mode::Edit {
-            self.unselect_if_necessary();
-            self.mode = Mode::LoadFile(self.filepath.clone());
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn begin_save_as(&mut self) -> bool {
-        if self.mode == Mode::Edit {
-            self.unselect_if_necessary();
-            self.mode = Mode::SaveAs(self.filepath.clone());
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn begin_resize_grid(&mut self) -> bool {
-        if self.mode == Mode::Edit {
-            self.unselect_if_necessary();
-            self.mode = Mode::Resize(format!(
-                "{}x{}",
-                self.tilegrid().width(),
-                self.tilegrid().height()
-            ));
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn begin_change_color(&mut self) -> bool {
-        if self.mode == Mode::Edit {
-            self.unselect_if_necessary();
-            let (r, g, b, _) = self.tilegrid().background_color();
-            self.mode = Mode::ChangeColor(format!("{},{},{}", r, g, b));
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn begin_change_tiles(&mut self) -> bool {
-        if self.mode == Mode::Edit {
-            self.unselect_if_necessary();
-            let mut string = String::new();
-            for filename in self.tilegrid().tileset().filenames() {
-                if !string.is_empty() {
-                    string.push(',');
-                }
-                string.push_str(&filename);
-            }
-            self.mode = Mode::ChangeTiles(string);
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn mode_cancel(&mut self) -> bool {
-        match self.mode {
-            Mode::Edit => false,
-            _ => {
-                self.mode = Mode::Edit;
-                true
-            }
-        }
-    }
-
-    pub fn enqueue_mode_perform(&mut self) -> bool {
-        match self.mode {
-            Mode::Edit => false,
-            _ => {
-                self.should_mode_perform = true;
-                true
-            }
-        }
-    }
-
-    pub fn mode_perform_if_necessary(&mut self, window: &Window) -> bool {
-        if !self.should_mode_perform {
-            return false;
-        }
-        self.should_mode_perform = false;
-        match self.mode.clone() {
-            Mode::Edit => false,
-            Mode::LoadFile(path) => {
-                match TileGrid::load_from_path(
-                    window,
-                    self.tilegrid().tileset().dirpath(),
-                    &path,
-                ) {
-                    Ok(tilegrid) => {
-                        self.filepath = path;
-                        self.current.tilegrid = Rc::new(tilegrid);
-                        self.current.unsaved = false;
-                        self.undo_stack.clear();
-                        self.redo_stack.clear();
-                        self.brush = None;
-                        self.persistent_mutation_active = false;
-                        self.mode = Mode::Edit;
-                        true
-                    }
-                    Err(_) => false,
-                }
-            }
-            Mode::SaveAs(mut path) => {
-                mem::swap(&mut path, &mut self.filepath);
-                match self.save_to_file() {
-                    Ok(()) => {
-                        self.mode = Mode::Edit;
-                        true
-                    }
-                    Err(_) => {
-                        mem::swap(&mut path, &mut self.filepath);
-                        false
-                    }
-                }
-            }
-            Mode::Resize(text) => {
-                let pieces: Vec<&str> = text.split('x').collect();
-                if pieces.len() != 2 {
-                    return false;
-                }
-                let new_width = match pieces[0].parse::<u32>() {
-                    Ok(width) => width,
-                    Err(_) => return false,
-                };
-                let new_height = match pieces[1].parse::<u32>() {
-                    Ok(height) => height,
-                    Err(_) => return false,
-                };
-                if new_width == 0
-                    || new_height == 0
-                    || new_width > MAX_GRID_WIDTH
-                    || new_height > MAX_GRID_HEIGHT
-                {
-                    return false;
-                }
-                self.mutation().resize_grid(new_width, new_height);
-                self.mode = Mode::Edit;
-                true
-            }
-            Mode::ChangeColor(text) => {
-                let pieces: Vec<&str> = text.split(',').collect();
-                if pieces.len() != 3 {
-                    return false;
-                }
-                let red = match pieces[0].parse::<u8>() {
-                    Ok(red) => red,
-                    Err(_) => return false,
-                };
-                let green = match pieces[1].parse::<u8>() {
-                    Ok(green) => green,
-                    Err(_) => return false,
-                };
-                let blue = match pieces[2].parse::<u8>() {
-                    Ok(blue) => blue,
-                    Err(_) => return false,
-                };
-                self.mutation().set_background_color(red, green, blue);
-                self.mode = Mode::Edit;
-                true
-            }
-            Mode::ChangeTiles(text) => {
-                let pieces: Vec<&str> = text.split(',').collect();
-                if pieces.len() < 1 {
-                    return false;
-                }
-                match self.mutation().set_tile_filenames(window, pieces) {
-                    Ok(()) => {
-                        self.mode = Mode::Edit;
-                        true
-                    }
-                    Err(_) => false,
-                }
-            }
-        }
+    pub fn load_tilegrid(&mut self, path: String, tilegrid: TileGrid) {
+        self.filepath = path;
+        self.current.tilegrid = Rc::new(tilegrid);
+        self.current.unsaved = false;
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+        self.brush = None;
+        self.persistent_mutation_active = false;
     }
 }
 

@@ -43,7 +43,7 @@ impl CoordsIndicator {
     }
 }
 
-impl GuiElement<EditorState> for CoordsIndicator {
+impl GuiElement<EditorState, ()> for CoordsIndicator {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
         let size = if self.by_pixel {
             state.tilegrid().tile_size() as i32
@@ -78,8 +78,8 @@ impl GuiElement<EditorState> for CoordsIndicator {
         }
     }
 
-    fn handle_event(&mut self, _: &Event, _: &mut EditorState) -> Action {
-        Action::ignore().and_continue()
+    fn on_event(&mut self, _: &Event, _: &mut EditorState) -> Action<()> {
+        Action::ignore()
     }
 }
 

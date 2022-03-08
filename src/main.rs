@@ -23,6 +23,7 @@ extern crate sdl2;
 
 mod canvas;
 mod coords;
+mod editor;
 mod element;
 mod event;
 mod paint;
@@ -35,16 +36,11 @@ mod unsaved;
 mod util;
 
 use self::canvas::{Font, Sprite, Window};
-use self::coords::CoordsIndicator;
-use self::element::{Action, AggregateElement, GuiElement};
-use self::event::{Event, Keycode, COMMAND, SHIFT};
-use self::paint::GridCanvas;
-use self::palette::TilePalette;
+use self::editor::EditorView;
+use self::element::GuiElement;
+use self::event::Event;
 use self::state::EditorState;
-use self::textbox::ModalTextBox;
 use self::tilegrid::{TileGrid, Tileset};
-use self::toolbox::Toolbox;
-use self::unsaved::UnsavedIndicator;
 use ahi::Palette;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -54,11 +50,7 @@ use std::time::Instant;
 
 const FRAME_DELAY_MILLIS: u32 = 100;
 
-fn render_screen<E: GuiElement<EditorState>>(
-    window: &mut Window,
-    state: &EditorState,
-    gui: &E,
-) {
+fn render_screen(window: &mut Window, state: &EditorState, gui: &EditorView) {
     {
         let mut canvas = window.canvas();
         canvas.clear((64, 64, 64, 255));
@@ -144,17 +136,7 @@ fn main() {
         EditorState::new("out.bg".to_string(), TileGrid::new(tileset))
     };
 
-    let elements: Vec<Box<dyn GuiElement<EditorState>>> = vec![
-        Box::new(ModalTextBox::new(32, 8, font.clone())),
-        Box::new(Toolbox::new(10, 34, tool_icons)),
-        Box::new(TilePalette::new(10, 116, arrow_icons)),
-        Box::new(GridCanvas::new(72, 34)),
-        Box::new(UnsavedIndicator::new(10, 10, unsaved_icon)),
-        Box::new(CoordsIndicator::new(658, 34, font.clone(), false)),
-        Box::new(CoordsIndicator::new(658, 378, font.clone(), true)),
-    ];
-    let mut gui = AggregateElement::new(elements);
-
+    let mut gui = EditorView::new(tool_icons, arrow_icons, unsaved_icon, font);
     render_screen(&mut window, &state, &gui);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -180,60 +162,16 @@ fn main() {
                 None => continue,
             },
         };
-        let action = match event {
+        let mut action = match event {
             Event::Quit => return,
-            Event::KeyDown(Keycode::A, kmod) if kmod == COMMAND => {
-                state.mutation().select_all();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::B, kmod) if kmod == COMMAND => {
-                Action::redraw_if(state.begin_change_color()).and_stop()
-            }
-            Event::KeyDown(Keycode::C, kmod) if kmod == COMMAND => {
-                state.mutation().copy_selection();
-                Action::ignore().and_stop()
-            }
-            Event::KeyDown(Keycode::H, kmod) if kmod == COMMAND | SHIFT => {
-                state.mutation().flip_selection_horz();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::O, kmod) if kmod == COMMAND => {
-                Action::redraw_if(state.begin_load_file()).and_stop()
-            }
-            Event::KeyDown(Keycode::R, kmod) if kmod == COMMAND => {
-                Action::redraw_if(state.begin_resize_grid()).and_stop()
-            }
-            Event::KeyDown(Keycode::S, kmod) if kmod == COMMAND => {
-                state.save_to_file().unwrap();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::S, kmod) if kmod == COMMAND | SHIFT => {
-                Action::redraw_if(state.begin_save_as()).and_stop()
-            }
-            Event::KeyDown(Keycode::T, kmod) if kmod == COMMAND => {
-                Action::redraw_if(state.begin_change_tiles()).and_stop()
-            }
-            Event::KeyDown(Keycode::V, kmod) if kmod == COMMAND => {
-                state.mutation().paste_selection();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::V, kmod) if kmod == COMMAND | SHIFT => {
-                state.mutation().flip_selection_vert();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::X, kmod) if kmod == COMMAND => {
-                state.mutation().cut_selection();
-                Action::redraw().and_stop()
-            }
-            Event::KeyDown(Keycode::Z, kmod) if kmod == COMMAND => {
-                Action::redraw_if(state.undo()).and_stop()
-            }
-            Event::KeyDown(Keycode::Z, kmod) if kmod == COMMAND | SHIFT => {
-                Action::redraw_if(state.redo()).and_stop()
-            }
-            event => gui.handle_event(&event, &mut state),
+            event => gui.on_event(&event, &mut state),
         };
-        if state.mode_perform_if_necessary(&window) || action.should_redraw() {
+        if let Some((mode, text)) = action.take_value() {
+            if gui.mode_perform(&window, &mut state, mode, text) {
+                action.also_redraw();
+            }
+        }
+        if action.should_redraw() {
             render_screen(&mut window, &state, &gui);
         }
     }
