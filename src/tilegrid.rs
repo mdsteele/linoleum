@@ -49,12 +49,13 @@ impl Tileset {
         let mut tiles = vec![];
         for filename in filenames {
             let path = dirpath.join(filename).with_extension("ahi");
-            let images =
+            let collection =
                 util::load_ahi_from_file(&path.to_str().unwrap().to_string())?;
+            let palette =
+                collection.palettes.first().unwrap_or(Palette::default());
             let mut sprites = vec![];
-            for image in images {
-                let sprite =
-                    window.new_sprite_with_palette(&image, Palette::default());
+            for image in collection.images {
+                let sprite = window.new_sprite(&image, palette);
                 sprites.push(Rc::new(sprite));
             }
             tiles.push((filename.to_string(), sprites));
@@ -76,19 +77,19 @@ impl Tileset {
         for filename in filenames {
             if let Some(sprites) = old_tiles.get(&filename.to_string()) {
                 new_tiles.push((filename.to_string(), sprites.clone()));
-            } else {
-                let path = self.dirpath.join(filename).with_extension("ahi");
-                let images = util::load_ahi_from_file(
-                    &path.to_str().unwrap().to_string(),
-                )?;
-                let mut sprites = vec![];
-                for image in images {
-                    let sprite = window
-                        .new_sprite_with_palette(&image, Palette::default());
-                    sprites.push(Rc::new(sprite));
-                }
-                new_tiles.push((filename.to_string(), sprites));
+                continue;
             }
+            let path = self.dirpath.join(filename).with_extension("ahi");
+            let collection =
+                util::load_ahi_from_file(&path.to_str().unwrap().to_string())?;
+            let palette =
+                collection.palettes.first().unwrap_or(Palette::default());
+            let mut sprites = vec![];
+            for image in collection.images {
+                let sprite = window.new_sprite(&image, &palette);
+                sprites.push(Rc::new(sprite));
+            }
+            new_tiles.push((filename.to_string(), sprites));
         }
         self.tiles = new_tiles;
         self.tile_size = Tileset::max_tile_size(&self.tiles);

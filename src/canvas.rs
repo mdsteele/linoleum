@@ -47,11 +47,7 @@ impl<'a> Window<'a> {
         Canvas::from_renderer(self.renderer)
     }
 
-    pub fn new_sprite(&self, image: &ahi::Image) -> Sprite {
-        self.new_sprite_with_palette(image, ahi::Palette::default())
-    }
-
-    pub fn new_sprite_with_palette(
+    pub fn new_sprite(
         &self,
         image: &ahi::Image,
         palette: &ahi::Palette,
@@ -91,7 +87,7 @@ impl<'a> Window<'a> {
 
     fn new_glyph(&self, glyph: &ahi::Glyph) -> Glyph {
         Glyph {
-            sprite: self.new_sprite(glyph.image()),
+            sprite: self.new_sprite(glyph.image(), ahi::Palette::default()),
             left_edge: glyph.left_edge(),
             right_edge: glyph.right_edge(),
         }

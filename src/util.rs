@@ -28,10 +28,9 @@ pub fn load_ahf_from_file(path: &String) -> io::Result<ahi::Font> {
     ahi::Font::read(&mut file)
 }
 
-pub fn load_ahi_from_file(path: &String) -> io::Result<Vec<ahi::Image>> {
+pub fn load_ahi_from_file(path: &String) -> io::Result<ahi::Collection> {
     let mut file = File::open(path)?;
-    let collection = ahi::Collection::read(&mut file)?;
-    Ok(collection.images)
+    ahi::Collection::read(&mut file)
 }
 
 //===========================================================================//

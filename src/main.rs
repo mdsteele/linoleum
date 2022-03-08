@@ -45,6 +45,7 @@ use self::textbox::ModalTextBox;
 use self::tilegrid::{TileGrid, Tileset};
 use self::toolbox::Toolbox;
 use self::unsaved::UnsavedIndicator;
+use ahi::Palette;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
@@ -72,13 +73,19 @@ fn load_font(window: &Window, path: &str) -> Font {
 }
 
 fn load_sprite(window: &Window, path: &str) -> Sprite {
-    let images = util::load_ahi_from_file(&path.to_string()).unwrap();
-    window.new_sprite(&images[0])
+    let collection = util::load_ahi_from_file(&path.to_string()).unwrap();
+    let palette = collection.palettes.first().unwrap_or(Palette::default());
+    window.new_sprite(&collection.images[0], palette)
 }
 
 fn load_sprites(window: &Window, path: &str) -> Vec<Sprite> {
-    let images = util::load_ahi_from_file(&path.to_string()).unwrap();
-    images.iter().map(|image| window.new_sprite(image)).collect()
+    let collection = util::load_ahi_from_file(&path.to_string()).unwrap();
+    let palette = collection.palettes.first().unwrap_or(Palette::default());
+    collection
+        .images
+        .iter()
+        .map(|image| window.new_sprite(image, palette))
+        .collect()
 }
 
 //===========================================================================//
@@ -110,6 +117,7 @@ fn main() {
     let sdl_window = video_subsystem
         .window("Linoleum", window_width, window_height)
         .position_centered()
+        .fullscreen_desktop()
         .build()
         .unwrap();
     let mut renderer = sdl_window.into_canvas().build().unwrap();
