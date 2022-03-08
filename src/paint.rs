@@ -33,6 +33,7 @@ enum ViewSize {
     Wide,
     Tall,
     Full,
+    Margin,
 }
 
 pub struct GridCanvas {
@@ -256,13 +257,17 @@ impl GuiElement<EditorState> for InnerCanvas {
             ViewSize::Small | ViewSize::Wide => {
                 vert_margin..(tilegrid.height() - vert_margin)
             }
-            ViewSize::Tall | ViewSize::Full => 0..tilegrid.height(),
+            ViewSize::Tall | ViewSize::Full | ViewSize::Margin => {
+                0..tilegrid.height()
+            }
         };
         let col_range = match self.view_size {
             ViewSize::Small | ViewSize::Tall => {
                 horz_margin..(tilegrid.width() - horz_margin)
             }
-            ViewSize::Wide | ViewSize::Full => 0..tilegrid.width(),
+            ViewSize::Wide | ViewSize::Full | ViewSize::Margin => {
+                0..tilegrid.width()
+            }
         };
         canvas.fill_rect(
             tilegrid.background_color(),
@@ -286,7 +291,7 @@ impl GuiElement<EditorState> for InnerCanvas {
                 }
             }
         }
-        if self.view_size == ViewSize::Full {
+        if self.view_size == ViewSize::Margin {
             let rect = Rect::new(
                 (horz_margin * tilegrid.tile_size()) as i32,
                 (vert_margin * tilegrid.tile_size()) as i32,
@@ -365,7 +370,8 @@ impl GuiElement<EditorState> for InnerCanvas {
                     ViewSize::Small => ViewSize::Wide,
                     ViewSize::Wide => ViewSize::Tall,
                     ViewSize::Tall => ViewSize::Full,
-                    ViewSize::Full => ViewSize::Small,
+                    ViewSize::Full => ViewSize::Margin,
+                    ViewSize::Margin => ViewSize::Small,
                 };
                 Action::redraw().and_stop()
             }
