@@ -19,7 +19,7 @@
 
 use crate::canvas::Canvas;
 use crate::canvas::{Font, Sprite, Window};
-use crate::coords::CoordsIndicator;
+use crate::coords::{CoordsIndicator, CoordsKind};
 use crate::element::{Action, AggregateElement, GuiElement};
 use crate::event::{Event, Keycode, COMMAND, SHIFT};
 use crate::paint::GridCanvas;
@@ -56,8 +56,24 @@ impl EditorView {
             Box::new(TilePalette::new(10, 116, arrow_icons)),
             Box::new(GridCanvas::new(72, 34)),
             Box::new(UnsavedIndicator::new(10, 10, unsaved_icon)),
-            Box::new(CoordsIndicator::new(658, 34, font.clone(), false)),
-            Box::new(CoordsIndicator::new(658, 378, font.clone(), true)),
+            Box::new(CoordsIndicator::new(
+                658,
+                34,
+                font.clone(),
+                CoordsKind::TileDec,
+            )),
+            Box::new(CoordsIndicator::new(
+                658,
+                334,
+                font.clone(),
+                CoordsKind::PixelDec,
+            )),
+            Box::new(CoordsIndicator::new(
+                658,
+                392,
+                font.clone(),
+                CoordsKind::PixelHex,
+            )),
         ];
         EditorView {
             aggregate: AggregateElement::new(elements),

@@ -24,12 +24,31 @@ use super::state::EditorState;
 use sdl2::rect::Point;
 use std::rc::Rc;
 
-// ========================================================================= //
+//===========================================================================//
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum CoordsKind {
+    PixelDec,
+    PixelHex,
+    TileDec,
+}
+
+impl CoordsKind {
+    fn format(self, value: i32, tile_size: i32) -> String {
+        match self {
+            CoordsKind::PixelDec => format!("{}", value * tile_size),
+            CoordsKind::PixelHex => format!("{:03x}", value * tile_size),
+            CoordsKind::TileDec => format!("{}", value),
+        }
+    }
+}
+
+//===========================================================================//
 
 pub struct CoordsIndicator {
     topleft: Point,
     font: Rc<Font>,
-    by_pixel: bool,
+    kind: CoordsKind,
 }
 
 impl CoordsIndicator {
@@ -37,43 +56,39 @@ impl CoordsIndicator {
         left: i32,
         top: i32,
         font: Rc<Font>,
-        by_pixel: bool,
+        kind: CoordsKind,
     ) -> CoordsIndicator {
-        CoordsIndicator { topleft: Point::new(left, top), font, by_pixel }
+        CoordsIndicator { topleft: Point::new(left, top), font, kind }
     }
 }
 
 impl GuiElement<EditorState, ()> for CoordsIndicator {
     fn draw(&self, state: &EditorState, canvas: &mut Canvas) {
-        let size = if self.by_pixel {
-            state.tilegrid().tile_size() as i32
-        } else {
-            1
-        };
+        let tile_size = state.tilegrid().tile_size() as i32;
         if let Some((subgrid, position)) = state.selection() {
-            let left = position.x() * size;
-            let top = position.y() * size;
-            let right = left + subgrid.width() as i32 * size;
-            let bottom = top + subgrid.height() as i32 * size;
+            let left = position.x();
+            let top = position.y();
+            let right = left + subgrid.width() as i32;
+            let bottom = top + subgrid.height() as i32;
             canvas.draw_text(
                 &self.font,
                 self.topleft + Point::new(15, 10),
-                &format!("{}", top),
+                &self.kind.format(top, tile_size),
             );
             canvas.draw_text(
                 &self.font,
                 self.topleft + Point::new(0, 25),
-                &format!("{}", left),
+                &self.kind.format(left, tile_size),
             );
             canvas.draw_text(
                 &self.font,
                 self.topleft + Point::new(30, 25),
-                &format!("{}", right),
+                &self.kind.format(right, tile_size),
             );
             canvas.draw_text(
                 &self.font,
                 self.topleft + Point::new(15, 40),
-                &format!("{}", bottom),
+                &self.kind.format(bottom, tile_size),
             );
         }
     }
@@ -83,4 +98,4 @@ impl GuiElement<EditorState, ()> for CoordsIndicator {
     }
 }
 
-// ========================================================================= //
+//===========================================================================//
