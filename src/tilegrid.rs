@@ -25,7 +25,7 @@ use std::cmp::{max, min, Ordering};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, Index, IndexMut};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -453,31 +453,41 @@ impl TileGrid {
         for filename in self.tileset.filenames() {
             write!(writer, ">{}\n", filename)?;
         }
-        write!(writer, "\n")?;
         let mut map = BTreeMap::<String, usize>::new();
         for (index, filename) in self.tileset.filenames().enumerate() {
             map.insert(filename.clone(), index);
         }
+        let mut lines = Vec::<String>::new();
         for row in 0..self.height() {
+            let mut line = String::new();
             let mut spaces = 0;
             for col in 0..self.width() {
                 match self[(col, row)] {
                     Some(ref tile) => {
                         for _ in 0..spaces {
-                            write!(writer, "  ")?;
+                            line.push_str("  ");
                         }
                         spaces = 0;
                         let file_index = *map.get(&tile.filename).unwrap();
                         let char1 = index_to_base64(file_index);
                         let char2 = index_to_base64(tile.index);
-                        write!(writer, "{}{}", char1, char2)?;
+                        line.push_str(&format!("{}{}", char1, char2));
                     }
                     None => {
                         spaces += 1;
                     }
                 }
             }
+            lines.push(line);
+        }
+        while matches!(lines.last().map(String::deref), Some("")) {
+            lines.pop();
+        }
+        if !lines.is_empty() {
             write!(writer, "\n")?;
+            for line in lines {
+                writeln!(writer, "{}", line)?;
+            }
         }
         Ok(())
     }
@@ -504,34 +514,48 @@ impl TileGrid {
             );
             return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
         };
+        let background_color = (red as u8, green as u8, blue as u8);
+        let mut subgrid = SubGrid::new(width, height);
         let mut filenames = Vec::new();
         loop {
-            match read_byte(reader.by_ref())? {
-                b'>' => {
+            match read_byte_or_eof(reader.by_ref())? {
+                Some(b'>') => {
                     filenames.push(read_string(reader.by_ref(), b'\n')?);
                 }
-                b'\n' => break,
-                byte => {
+                Some(b'\n') => break,
+                Some(byte) => {
                     let msg = format!("unexpected byte: {}", byte);
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         msg,
                     ));
                 }
+                None => {
+                    let tileset =
+                        Rc::new(Tileset::load(window, dirpath, &filenames)?);
+                    return Ok(TileGrid {
+                        background_color,
+                        tileset,
+                        subgrid,
+                    });
+                }
             }
         }
-        let tileset = Tileset::load(window, dirpath, &filenames)?;
-        let mut grid = Vec::new();
-        for _ in 0..height {
+        let tileset = Rc::new(Tileset::load(window, dirpath, &filenames)?);
+        for row in 0..height {
             let mut col = 0;
             loop {
-                let byte1 = read_byte(reader.by_ref())?;
-                if byte1 == b'\n' {
-                    for _ in col..width {
-                        grid.push(None);
+                let byte1 = match read_byte_or_eof(reader.by_ref())? {
+                    None => {
+                        return Ok(TileGrid {
+                            background_color,
+                            tileset,
+                            subgrid,
+                        });
                     }
-                    break;
-                }
+                    Some(b'\n') => break,
+                    Some(byte) => byte,
+                };
                 if col >= width {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -539,9 +563,7 @@ impl TileGrid {
                     ));
                 }
                 let byte2 = read_byte(reader.by_ref())?;
-                if byte1 == b' ' && byte2 == b' ' {
-                    grid.push(None);
-                } else {
+                if byte1 != b' ' || byte2 != b' ' {
                     let file_index = base64_to_index(byte1)?;
                     let tile_index = base64_to_index(byte2)?;
                     let opt_tile = tileset.get(file_index, tile_index);
@@ -549,16 +571,12 @@ impl TileGrid {
                         let msg = format!("invalid tile: {} {}", byte1, byte2);
                         io::Error::new(io::ErrorKind::InvalidData, msg)
                     })?;
-                    grid.push(Some(tile));
+                    subgrid[(col, row)] = Some(tile);
                 }
                 col += 1;
             }
         }
-        Ok(TileGrid {
-            background_color: (red as u8, green as u8, blue as u8),
-            tileset: Rc::new(tileset),
-            subgrid: SubGrid { width, height, grid },
-        })
+        return Ok(TileGrid { background_color, tileset, subgrid });
     }
 
     pub fn load_from_path(
@@ -608,10 +626,18 @@ impl IndexMut<(u32, u32)> for TileGrid {
 
 //===========================================================================//
 
-fn read_byte<R: io::Read>(reader: R) -> io::Result<u8> {
+fn read_byte_or_eof<R: io::Read>(reader: R) -> io::Result<Option<u8>> {
     match reader.bytes().next() {
-        Some(result) => result,
-        None => {
+        Some(result) => result.map(Option::Some),
+        None => Ok(None),
+    }
+}
+
+fn read_byte<R: io::Read>(reader: R) -> io::Result<u8> {
+    match read_byte_or_eof(reader) {
+        Err(error) => Err(error),
+        Ok(Some(byte)) => Ok(byte),
+        Ok(None) => {
             let msg = "unexpected EOF";
             Err(io::Error::new(io::ErrorKind::InvalidData, msg))
         }
