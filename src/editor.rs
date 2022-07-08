@@ -54,7 +54,7 @@ impl EditorView {
         let elements: Vec<Box<dyn GuiElement<EditorState, ()>>> = vec![
             Box::new(Toolbox::new(10, 34, tool_icons)),
             Box::new(TilePalette::new(10, 116, arrow_icons)),
-            Box::new(GridCanvas::new(72, 34)),
+            Box::new(GridCanvas::new(72, 34, font.clone())),
             Box::new(UnsavedIndicator::new(10, 10, unsaved_icon)),
             Box::new(CoordsIndicator::new(
                 658,

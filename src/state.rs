@@ -70,7 +70,7 @@ impl EditorState {
             current: Snapshot {
                 tilegrid: Rc::new(tilegrid),
                 selection: None,
-                unsaved: true,
+                unsaved: false,
             },
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),

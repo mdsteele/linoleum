@@ -17,13 +17,14 @@
 // | with Linoleum.  If not, see <http://www.gnu.org/licenses/>.              |
 // +--------------------------------------------------------------------------+
 
-use super::canvas::Canvas;
+use super::canvas::{Canvas, Font};
 use super::element::{Action, GuiElement, SubrectElement};
 use super::event::{Event, Keycode, COMMAND, SHIFT};
 use super::state::{EditorState, Tool};
 use super::tilegrid::TileGrid;
 use sdl2::rect::{Point, Rect};
 use std::cmp::{max, min};
+use std::rc::Rc;
 
 //===========================================================================//
 
@@ -41,10 +42,10 @@ pub struct GridCanvas {
 }
 
 impl GridCanvas {
-    pub fn new(left: i32, top: i32) -> GridCanvas {
+    pub fn new(left: i32, top: i32, font: Rc<Font>) -> GridCanvas {
         GridCanvas {
             element: SubrectElement::new(
-                InnerCanvas::new(),
+                InnerCanvas::new(font),
                 Rect::new(left, top, 36 * 16, 25 * 16),
             ),
         }
@@ -82,14 +83,16 @@ struct CanvasDrag {
 }
 
 struct InnerCanvas {
+    font: Rc<Font>,
     drag_from_to: Option<CanvasDrag>,
     selection_animation_counter: i32,
     view_size: ViewSize,
 }
 
 impl InnerCanvas {
-    pub fn new() -> InnerCanvas {
+    pub fn new(font: Rc<Font>) -> InnerCanvas {
         InnerCanvas {
+            font,
             drag_from_to: None,
             selection_animation_counter: 0,
             view_size: ViewSize::Full,
@@ -300,7 +303,7 @@ impl GuiElement<EditorState, ()> for InnerCanvas {
             );
             canvas.draw_rect((63, 63, 63, 255), rect);
         }
-        if let Some((ref selected, topleft)) = state.selection() {
+        let label = if let Some((ref selected, topleft)) = state.selection() {
             for row in 0..selected.height() {
                 for col in 0..selected.width() {
                     if let Some(ref tile) = selected[(col, row)] {
@@ -322,6 +325,15 @@ impl GuiElement<EditorState, ()> for InnerCanvas {
                 marquee_rect,
                 self.selection_animation_counter,
             );
+            if let Some(drag) = self.drag_from_to.as_ref() {
+                let from = drag.from_selection;
+                let delta_x = topleft.x() - from.x();
+                let delta_y = topleft.y() - from.y();
+                let text = format!("{},{}", delta_x.abs(), delta_y.abs());
+                Some((marquee_rect, text))
+            } else {
+                None
+            }
         } else if let Some(rect) = self.dragged_rect(tilegrid) {
             let marquee_rect = Rect::new(
                 rect.x() * (tilegrid.tile_size() as i32),
@@ -330,6 +342,20 @@ impl GuiElement<EditorState, ()> for InnerCanvas {
                 rect.height() * tilegrid.tile_size(),
             );
             draw_marquee(canvas, marquee_rect, 0);
+            let text = format!("{}x{}", rect.width(), rect.height());
+            Some((marquee_rect, text))
+        } else {
+            None
+        };
+        if let Some((marquee_rect, text)) = label {
+            let left = marquee_rect.x().max(0);
+            let top = marquee_rect.y().max(12);
+            let text_width = self.font.text_width(&text) as u32;
+            canvas.fill_rect(
+                (255, 255, 255, 255),
+                Rect::new(left + 1, top - 11, text_width + 1, 10),
+            );
+            canvas.draw_text(&self.font, Point::new(left + 2, top - 2), &text);
         }
     }
 
