@@ -8,7 +8,4 @@ edition = "2018"
 [dependencies]
 ahi = { git = "https://github.com/mdsteele/ahi", rev = "1534f7c8" }
 getopts = "0.2"
-
-[dependencies.sdl2]
-version = "0.31"
-features = ["unsafe_textures", "use_mac_framework"]
+sdl2 = { version = "0.35", features = ["unsafe_textures"] }

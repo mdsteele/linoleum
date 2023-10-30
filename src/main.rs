@@ -105,11 +105,11 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window_width = 720;
-    let window_height = 450;
+    let window_height = 440;
     let sdl_window = video_subsystem
-        .window("Linoleum", window_width, window_height)
+        .window("Linoleum", window_width * 2, window_height * 2)
         .position_centered()
-        .fullscreen_desktop()
+        //.fullscreen_desktop()
         .build()
         .unwrap();
     let mut renderer = sdl_window.into_canvas().build().unwrap();
